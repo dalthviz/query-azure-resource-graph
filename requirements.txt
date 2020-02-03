@@ -1,0 +1,5 @@
+azure-mgmt-resourcegraph
+msal
+pandas
+pyecore
+

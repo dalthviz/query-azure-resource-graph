@@ -1,11 +1,11 @@
 {
-    "client_id":"AZURE_AD_CLIENT_ID",
-    "client_secret":"AZURE_AD_CLIENT_SECRET",
-    "tenantname":"TENANT_NAME",
-    "scope":"https://management.azure.com//.default",
-    "subscription_ids":[
-        "SUBSCRIPTION_ID_1",
-        "SUBSCRIPTION_ID_1"
-    ],
-    "query":"where type =~ 'microsoft.storage/storageaccounts' | project name,sku['tier'],kind,properties['supportsHttpsTrafficOnly']"
+  "client_id": "AZURE_AD_CLIENT_ID",
+  "client_secret": "AZURE_AD_CLIENT_SECRET",
+  "scope": "https://management.azure.com//.default",
+  "subscription_ids": [
+    "SUBSCRIPTION_ID_1",
+    "SUBSCRIPTION_ID_2"
+  ],
+  "tenantname": "TENANT_NAME",
+  "query": "Resources | where type=~'microsoft.compute/virtualmachines' | extend nics=array_length(properties .networkProfile.networkInterfaces), dDisk=properties .storageProfile.dataDisks[0] | mvexpand nic=properties .networkProfile.networkInterfaces | where nics == 1 or nic.properties.primary =~ 'true' or isempty(nic) | project vmId=id, properties, vmName=name, tagsDisplayName=tostring(tags.displayName), os=tostring(properties.storageProfile .osDisk.osType), osImage=strcat( tostring(properties.storageProfile .imageReference.sku), \"-\", tostring(properties.storageProfile .imageReference.offer)), osDiskSize=tostring(properties.storageProfile .osDisk.diskSizeGB), dataDiskSize=tostring(dDisk.diskSizeGB), networkId=tostring(nic.id), vmSize=tostring(properties.hardwareProfile.vmSize) | join kind=leftouter ( Resources | where type =~ 'microsoft.network/networkinterfaces' | extend ipConfigsCount=array_length(properties.ipConfigurations), networkConfig=properties | mvexpand ipconfig=properties.ipConfigurations | where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true' | project networkId = id, publicIpId = tostring(ipconfig.properties.publicIPAddress.id), privateIpAddress = ipconfig.properties.privateIPAddress, subnetId = tostring(ipconfig.properties.subnet.id), loadBBackendAddressPoolsId = tostring(ipconfig.properties.loadBalancerBackendAddressPools[0].id), loadBInboundNatRulesId = tostring(ipconfig.properties.loadBalancerInboundNatRules[0].id), networkConfig) on networkId | project-away networkId1 | summarize by vmId, vmName, tagsDisplayName, vmSize, os, osImage, osDiskSize, dataDiskSize, publicIpId, tostring(privateIpAddress), subnetId, loadBBackendAddressPoolsId, loadBInboundNatRulesId, tostring(networkConfig) | join kind=leftouter ( Resources | where type =~ 'microsoft.network/publicipaddresses' | project publicIpId = id, publicIpAddress = properties.ipAddress) on publicIpId | project-away publicIpId1, publicIpId | join kind=leftouter ( Resources | where type =~ 'microsoft.network/loadbalancers' | project loadBBackendAddressPoolsId = tostring(properties.backendAddressPools[0].id), loadBInboundNatRulesId = tostring(properties.inboundNatRules[0].id), loadBBackendAddressPools = tostring(properties.backendAddressPools[0]), loadBInboundNatRules = tostring(properties.inboundNatRules[0]), lbProbes = tostring(properties.probes[0].properties), lbName = name, lbProperties = properties, resourceGroup) on loadBBackendAddressPoolsId and loadBInboundNatRulesId | summarize by vmId, vmName, tagsDisplayName, vmSize, os, osImage, osDiskSize, dataDiskSize, tostring(privateIpAddress), tostring(publicIpAddress), subnetId, lbName, lbBackendAddressPools = loadBBackendAddressPools, lbInboundNatRules = loadBInboundNatRules, lbProbes, resourceGroup, tostring(lbProperties), networkProperties = networkConfig",
 }

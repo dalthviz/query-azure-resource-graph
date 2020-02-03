@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ecore:EPackage xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ecore="http://www.eclipse.org/emf/2002/Ecore" name="infrastructure" nsURI="http://uniandes.edu.co/metamodel/infrastructure"
+    nsPrefix="infrastructure">
+  <eClassifiers xsi:type="ecore:EClass" name="VirtualMachine" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterfaces" lowerBound="1"
+        upperBound="-1" eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/virtualmachine"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="disks" upperBound="-1"
+        eType="#//Disk" derived="true" eOpposite="#//Disk/virtualmachines"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NetworkInterface" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="virtualmachine" eType="#//VirtualMachine"
+        derived="true" eOpposite="#//VirtualMachine/networkinterfaces"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="loadbalancer" eType="#//LoadBalancer"
+        derived="true" eOpposite="#//LoadBalancer/networkinterfaces"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publicip" eType="#//PublicIp"
+        derived="true" eOpposite="#//PublicIp/networkinterface"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="virtualnetwork" lowerBound="1"
+        eType="#//VirtualNetwork" derived="true" eOpposite="#//VirtualNetwork/networkinterfaces"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="subnet" lowerBound="1"
+        eType="#//Subnet" derived="true" eOpposite="#//Subnet/networkinterfaces"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networksecuritygroup" lowerBound="1"
+        eType="#//NetworkSecurityGroup" derived="true" eOpposite="#//NetworkSecurityGroup/networkinterfaces"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="privateip" eType="#//PrivateIp"
+        derived="true" eOpposite="#//PrivateIp/networkinterface"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="LoadBalancer" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterfaces" upperBound="-1"
+        eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/loadbalancer"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="ResourceGroup">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="elements" upperBound="-1"
+        eType="#//Element" derived="true" eOpposite="#//Element/resourcegroup"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Owner">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="elements" upperBound="-1"
+        eType="#//Element" derived="true" eOpposite="#//Element/owner"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Element" abstract="true">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="resourcegroup" lowerBound="1"
+        eType="#//ResourceGroup" derived="true" eOpposite="#//ResourceGroup/elements"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="owner" lowerBound="1" eType="#//Owner"
+        derived="true" eOpposite="#//Owner/elements"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="tag" upperBound="-1" eType="#//Tag"
+        derived="true" eOpposite="#//Tag/element"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="properties" upperBound="-1"
+        eType="#//Property" derived="true" containment="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="availabilityzone" lowerBound="1"
+        eType="#//AvailabilityZone" derived="true" eOpposite="#//AvailabilityZone/elements"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="service" upperBound="-1"
+        eType="#//Service" eOpposite="#//Service/element"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="PublicIp" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterface" lowerBound="1"
+        eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/publicip"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Disk" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="virtualmachines" upperBound="-1"
+        eType="#//VirtualMachine" derived="true" eOpposite="#//VirtualMachine/disks"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="NetworkSecurityGroup" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="inboundrules" upperBound="-1"
+        eType="#//InboundRule" derived="true" containment="true" eOpposite="#//InboundRule/networksecuritygroup"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="outboundrules" upperBound="-1"
+        eType="#//OutboundRule" derived="true" containment="true" eOpposite="#//OutboundRule/networksecuritygroup"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterfaces" upperBound="-1"
+        eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/networksecuritygroup"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="VirtualNetwork" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterfaces" upperBound="-1"
+        eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/virtualnetwork"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="subnets" lowerBound="1"
+        upperBound="-1" eType="#//Subnet" derived="true" eOpposite="#//Subnet/virtualnetwork"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Subnet" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="virtualnetwork" lowerBound="1"
+        eType="#//VirtualNetwork" derived="true" eOpposite="#//VirtualNetwork/subnets"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterfaces" upperBound="-1"
+        eType="#//NetworkInterface" eOpposite="#//NetworkInterface/subnet"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="InboundRule" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networksecuritygroup" lowerBound="1"
+        eType="#//NetworkSecurityGroup" derived="true" eOpposite="#//NetworkSecurityGroup/inboundrules"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="OutboundRule" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networksecuritygroup" lowerBound="1"
+        eType="#//NetworkSecurityGroup" derived="true" eOpposite="#//NetworkSecurityGroup/outboundrules"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Tag">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="element" upperBound="-1"
+        eType="#//Element" eOpposite="#//Element/tag"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Property">
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="key" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="value" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="GatewaySubnet" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="virtualnetwork" lowerBound="1"
+        eType="#//VirtualNetwork" derived="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="publicip" lowerBound="1"
+        eType="#//PublicIp" derived="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="connection" upperBound="-1"
+        eType="#//Connection" derived="true" eOpposite="#//Connection/gatewaysubnet"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Connection" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="gatewaysubnet" lowerBound="2"
+        upperBound="2" eType="#//GatewaySubnet" derived="true" eOpposite="#//GatewaySubnet/connection"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Region">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="availabilityzone" lowerBound="1"
+        upperBound="-1" eType="#//AvailabilityZone" derived="true" containment="true"
+        eOpposite="#//AvailabilityZone/region"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        transient="true"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="PrivateIp" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="networkinterface" lowerBound="1"
+        eType="#//NetworkInterface" derived="true" eOpposite="#//NetworkInterface/privateip"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="AvailabilityZone">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="region" lowerBound="1"
+        eType="#//Region" derived="true" eOpposite="#//Region/availabilityzone"/>
+    <eStructuralFeatures xsi:type="ecore:EAttribute" name="name" eType="ecore:EDataType http://www.eclipse.org/emf/2002/Ecore#//EString"
+        transient="true"/>
+    <eStructuralFeatures xsi:type="ecore:EReference" name="elements" upperBound="-1"
+        eType="#//Element" derived="true" containment="true" eOpposite="#//Element/availabilityzone"/>
+  </eClassifiers>
+  <eClassifiers xsi:type="ecore:EClass" name="Service" eSuperTypes="#//Element">
+    <eStructuralFeatures xsi:type="ecore:EReference" name="element" upperBound="-1"
+        eType="#//Element" eOpposite="#//Element/service"/>
+  </eClassifiers>
+</ecore:EPackage>
