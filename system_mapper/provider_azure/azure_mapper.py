@@ -8,7 +8,7 @@ import json
 import logging
 
 # Third-party imports
-import pandas
+from pandas import DataFrame
 from neomodel import DoesNotExist
 
 # Local imports
@@ -20,7 +20,7 @@ from system_mapper.graph import (
 class AzureGraphMapper(BaseGraphMapper):
     """Azure implementation of a graph mapper."""
 
-    PROVIDER_NAME = "AZURE"
+    PROVIDER_NAME = 'AZURE'
 
     def get_data(self):
         """Use Azure Resource Graph to get the data."""
@@ -140,7 +140,8 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect disk with vm
             d_virtual_machine = d['managedBy']
             try:
-                VirtualMachine.nodes.get(uid=d_virtual_machine).disks.connect(disk)
+                VirtualMachine.nodes.get(
+                    uid=d_virtual_machine).disks.connect(disk)
             except DoesNotExist:
                 pass
 
@@ -179,19 +180,13 @@ class AzureGraphMapper(BaseGraphMapper):
 
     def export_data(data):
         """Export data using Pandas."""
-        # Create a list of column names
-        column_names = []
-
-        for column in data['columns']:
-            column_names.append(column['name'])
-
-        # Create a DataFrame using the Pandas module and export it as JSON
-        dfobj = pandas.DataFrame(data['rows'], columns=column_names)
-        return dfobj
+        df_data = DataFrame.from_dict(data)
+        logging.info(df_data)
+        return df_data
 
 
 if __name__ == '__main__':
     """Test AzureMapper."""
-    # print(az_cli(['account', 'list']))
     az_mapper = AzureGraphMapper()
     az_mapper.map_data()
+    logging.info(az_cli(['account', 'list']))

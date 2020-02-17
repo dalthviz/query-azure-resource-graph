@@ -11,12 +11,11 @@ An utility to retrieve infrastructure and system information from a cloud provid
 * [Microsoft Azure Python SDK](https://github.com/Azure/azure-sdk-for-python/tree/master/sdk)
 * [Microsoft Authentication Library (MSAL)](https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-v2-libraries)
 * [Pandas](https://pandas.pydata.org/)
-* [PyEcore](https://pyecore.readthedocs.io/en/latest/index.html)
 * [neomodel](https://github.com/neo4j-contrib/neomodel)
 
 #### AWS
 
-* Cloudmapper and other tools are available
+* [Tools like Cloudmapper are available (at least for infrastructure mapping)](https://github.com/duo-labs/cloudmapper)
 
 ### Environment (database)
 
@@ -26,4 +25,4 @@ An utility to retrieve infrastructure and system information from a cloud provid
 
 * Clone the repository.
 * Install the required modules referenced above (`pip install -r requirements.txt`).
-* Run ---
+* Check that a Neo4j instance is running in the default port and has as user `neo4j` and password `ne@4j`
