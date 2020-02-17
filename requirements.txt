@@ -1,5 +1,6 @@
-azure-mgmt-resourcegraph
-msal
+azure-cli
+resource-graph
 pandas
 pyecore
+neomodel
 

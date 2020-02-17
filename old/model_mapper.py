@@ -12,6 +12,8 @@ from pyecore.resources import HttpURI, ResourceSet, URI
 from pyecore.utils import DynamicEPackage
 
 
+# Create base class with the basic api to create a model given formated data
+
 def get_infrastructure_model_access(ecore_uri='./infrastructure.ecore',
                                     http_uri=False):
     """Return handler to instanciate classes of a metamodel."""
