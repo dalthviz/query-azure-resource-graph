@@ -9,9 +9,10 @@ import logging
 
 # Third-party imports
 import pandas
+from neomodel import DoesNotExist
 
 # Local imports
-from azhelper import az_login, az_resource_graph, SUCCESS_CODE
+from azhelper import az_cli, az_login, az_resource_graph, SUCCESS_CODE
 from system_mapper.graph import (
     BaseGraphMapper, Disk, NetworkInterface, ResourceGroup, VirtualMachine)
 
@@ -138,7 +139,10 @@ class AzureGraphMapper(BaseGraphMapper):
                 disk)
             # Connect disk with vm
             d_virtual_machine = d['managedBy']
-            VirtualMachine.nodes.get(uid=d_virtual_machine).disks.connect(disk)
+            try:
+                VirtualMachine.nodes.get(uid=d_virtual_machine).disks.connect(disk)
+            except DoesNotExist:
+                pass
 
         network_interfaces = data['network_interfaces']
         for ni in network_interfaces:
@@ -159,9 +163,13 @@ class AzureGraphMapper(BaseGraphMapper):
                 network_interface)
             # Connect ni with vm
             ni_virtual_machine = ni['properties']['virtualMachine']['id']
-            VirtualMachine.nodes.get(
-                uid=ni_virtual_machine).network_interfaces.connect(
-                    network_interface)
+
+            try:
+                VirtualMachine.nodes.get(
+                    uid=ni_virtual_machine).network_interfaces.connect(
+                        network_interface)
+            except DoesNotExist:
+                pass
 
         # SecurityGroup
 
@@ -184,5 +192,6 @@ class AzureGraphMapper(BaseGraphMapper):
 
 if __name__ == '__main__':
     """Test AzureMapper."""
+    # print(az_cli(['account', 'list']))
     az_mapper = AzureGraphMapper()
     az_mapper.map_data()
