@@ -10,7 +10,7 @@ import logging
 # Third-party imports
 from neomodel import (
     clear_neo4j_database, config, db, JSONProperty, StructuredNode,
-    StringProperty, RelationshipTo, RelationshipFrom)
+    StringProperty, Relationship)
 
 
 # ------------------------- Interface of a Graph mapper -----------------------
@@ -21,11 +21,12 @@ class BaseGraphMapper():
 
     def __init__(
             self, database_url='bolt://neo4j:ne@4j@localhost:7687',
-            logfile=None):
+            logfile=None, logger=False):
         self.database_url = database_url
         config.DATABASE_URL = self.database_url
         self.db = db
-        self.create_logger(logfile=logfile)
+        if logger:
+            self.create_logger(logfile=logfile)
 
     def add_property(
             self, element_properties, property_key='key', property_value=None):
@@ -81,8 +82,8 @@ class Owner(StructuredNode):
     """Owner of an element."""
 
     value = StringProperty()
-    regions = RelationshipTo('Region', 'REGION')
-    elements = RelationshipTo('Element', 'OWNED_ELEMENT')
+    regions = Relationship('Region', 'REGION')
+    elements = Relationship('Element', 'OWNED_ELEMENT')
     properties = JSONProperty()
 
 
@@ -91,8 +92,7 @@ class Region(StructuredNode):
 
     name = StringProperty()
     properties = JSONProperty()
-    region = RelationshipFrom('Owner', 'REGION')
-    availability_zone = RelationshipTo(
+    availability_zone = Relationship(
         'AvailabilityZone', 'AVAILABILITY_ZONE')
 
 
@@ -102,10 +102,8 @@ class AvailabilityZone(StructuredNode):
 
     name = StringProperty()
     properties = JSONProperty()
-    availability_zone = RelationshipFrom(
-        'Region', 'AVAILABILITY_ZONE')
-    elements = RelationshipTo('Element', 'ELEMENT')
-    resource_groups = RelationshipTo('ResourceGroup', 'RESOURCE_GROUP')
+    elements = Relationship('Element', 'ELEMENT')
+    resource_groups = Relationship('ResourceGroup', 'RESOURCE_GROUP')
 
 
 class ResourceGroup(StructuredNode):
@@ -113,9 +111,7 @@ class ResourceGroup(StructuredNode):
 
     name = StringProperty()
     properties = JSONProperty()
-    availability_zone = RelationshipFrom(
-        'AvailabilityZone', 'RESOURCE_GROUP')
-    elements = RelationshipTo('Element', 'ELEMENT_RESOURCE_GROUP')
+    elements = Relationship('Element', 'ELEMENT_RESOURCE_GROUP')
 
 
 class Property(StructuredNode):
@@ -123,7 +119,6 @@ class Property(StructuredNode):
 
     key = StringProperty()
     value = StringProperty()
-    element = RelationshipFrom('Element', 'OBJ_PROPERTY')
 
 
 class Element(StructuredNode):
@@ -133,28 +128,22 @@ class Element(StructuredNode):
     uid = StringProperty(unique_index=True)
     name = StringProperty()
     properties = JSONProperty()
-    object_properties = RelationshipTo('Property', 'OBJ_PROPERTY')
+    object_properties = Relationship('Property', 'OBJ_PROPERTY')
     tags = JSONProperty()
-    availability_zone = RelationshipFrom(
-        'AvailabilityZone', 'ELEMENT')
-    resource_group = RelationshipFrom(
-        'ResourceGroup', 'ELEMENT_RESOURCE_GROUP')
-    owner = RelationshipFrom('Owner', 'OWNER_ELEMENT')
 
 
 # ---------------------------- Elements
 class VirtualMachine(Element):
     """Virtual Machine concept."""
 
-    disks = RelationshipTo('Disk', 'DISK')
-    network_interfaces = RelationshipTo(
+    disks = Relationship('Disk', 'DISK')
+    network_interfaces = Relationship(
         'NetworkInterface', 'NETWORK_INTERFACE')
 
 
 class Disk(Element):
     """Disk concept."""
-
-    virtual_machines = RelationshipFrom('VirtualMachine', 'DISK')
+    pass
 
 
 class LoadBalancer(VirtualMachine):
@@ -165,83 +154,69 @@ class LoadBalancer(VirtualMachine):
 
 class PublicIp(Element):
     """Public IP concept."""
-
-    network_interface = RelationshipFrom('NetworkInterface', 'PUBLIC IP')
+    pass
 
 
 class PrivateIp(Element):
     """Private IP concept."""
-
-    network_interface = RelationshipFrom('NetworkInterface', 'PRIVATE IP')
+    pass
 
 
 class InboundRule(Element):
     """Inbound rule concept."""
-
-    network_security_group = RelationshipFrom(
-        'NetworkSecurityGroup', 'INBOUND_RULE')
+    pass
 
 
 class OutboundRule(Element):
     """Outbound rule concept."""
-
-    network_security_group = RelationshipFrom(
-        'NetworkSecurityGroup', 'OUTBOUND_RULE')
+    pass
 
 
 class NetworkSecurityGroup(Element):
     """NSG concept."""
 
-    network_interface = RelationshipFrom(
-        'NetworkInterface', 'NETWORK_SECURITY_GROUP')
-    inbound_rules = RelationshipTo('InboundRule', 'INBOUND_RULE')
-    outbound_rules = RelationshipTo('OutboundRule', 'OUTBOUND_RULE')
+    inbound_rules = Relationship('InboundRule', 'INBOUND_RULE')
+    outbound_rules = Relationship('OutboundRule', 'OUTBOUND_RULE')
 
 
 class NetworkInterface(Element):
     """Network interface concept."""
 
-    virtual_machine = RelationshipFrom('VirtualMachine', 'NETWORK_INTERFACE')
-    public_ip = RelationshipTo('PublicIp', 'PUBLIC_IP')
-    private_ip = RelationshipTo('PrivateIp', 'PRIVATE_IP')
-    network_security_group = RelationshipTo(
+    public_ip = Relationship('PublicIp', 'PUBLIC_IP')
+    private_ip = Relationship('PrivateIp', 'PRIVATE_IP')
+    network_security_group = Relationship(
         'NetworkSecurityGroup', 'NETWORK_SECURITY_GROUP')
-    subnet = RelationshipTo('Subnet', 'SUBNET_NI')
-    virtual_network = RelationshipFrom(
-        'VirtualNetwork', 'NETWORK_INTERFACE_VN')
+    subnet = Relationship('Subnet', 'SUBNET_NI')
 
 
 class Subnet(Element):
     """Subnet concept."""
-
-    virtual_network = RelationshipFrom('VirtualNetwork', 'SUBNET')
-    network_interfaces = RelationshipFrom('NetworkInterface', 'SUBNET_NI')
+    pass
 
 
 class Connection(Element):
     """Virtual network connection."""
-
-    gateways = RelationshipFrom('GatewaySubnet', 'CONNECTED_SUBNET')
+    pass
 
 
 class GatewaySubnet(Subnet):
     """Gateway subnet VPN concept."""
 
-    connection = RelationshipTo('Connection', 'CONNECTED_SUBNET')
+    connection = Relationship('Connection', 'CONNECTED_SUBNET')
 
 
 class VirtualNetwork(Element):
     """Virtual Network concept."""
 
-    subnets = RelationshipTo('Subnet', 'SUBNET')
-    network_interfaces = RelationshipTo(
+    subnets = Relationship('Subnet', 'SUBNET')
+    network_interfaces = Relationship(
         'NetworkInterface', 'NETWORK_INTERFACE_VN')
 
 
 class Service(Element):
     """Service concept."""
 
-    elements = RelationshipTo('Element', 'SERVICE_ELEMENTS')
+    elements = Relationship('Element', 'SERVICE_ELEMENTS')
 
 
 if __name__ == '__main__':

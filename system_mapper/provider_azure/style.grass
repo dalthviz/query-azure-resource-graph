@@ -1,0 +1,101 @@
+node {
+  diameter: 50px;
+  color: #A5ABB6;
+  border-color: #9AA1AC;
+  border-width: 2px;
+  text-color-internal: #FFFFFF;
+  font-size: 10px;
+}
+relationship {
+  color: #A5ABB6;
+  shaft-width: 1px;
+  font-size: 8px;
+  padding: 3px;
+  text-color-external: #000000;
+  text-color-internal: #FFFFFF;
+  caption: "<type>";
+}
+node.* {
+  color: #68BDF6;
+  border-color: #5CA8DB;
+  text-color-internal: #FFFFFF;
+  defaultCaption: "<id>";
+}
+node.VirtualMachine {
+  color: #6DCE9E;
+  border-color: #60B58B;
+  text-color-internal: #FFFFFF;
+  defaultCaption: "<id>";
+  caption: "{tags}";
+}
+node.Element {
+  color: #FF756E;
+  border-color: #E06760;
+  text-color-internal: #FFFFFF;
+  defaultCaption: "<id>";
+  caption: "{name}";
+  diameter: 65px;
+}
+node.Property {
+  color: #DE9BF9;
+  border-color: #BF85D6;
+  text-color-internal: #FFFFFF;
+  defaultCaption: "<id>";
+  caption: "{value}";
+}
+node.Tag {
+  color: #FB95AF;
+  border-color: #E0849B;
+  text-color-internal: #FFFFFF;
+  defaultCaption: "<id>";
+  caption: "{value}";
+}
+node.Disk {
+  color: #FFD86E;
+  border-color: #EDBA39;
+  text-color-internal: #604A0E;
+  defaultCaption: "<id>";
+  caption: "{name}";
+  diameter: 65px;
+}
+node.NetworkInterface {
+  defaultCaption: "<id>";
+  color: #68BDF6;
+  border-color: #5CA8DB;
+  text-color-internal: #FFFFFF;
+}
+node.Node_type_1 {
+  caption: "{name}";
+  color: #68BDF6;
+  border-color: #5CA8DB;
+  text-color-internal: #FFFFFF;
+  diameter: 80px;
+}
+node.Revistas_indexadas {
+  caption: "{DEPARTAMENTO}";
+}
+node.Grupo_colciencias {
+  caption: "{NME_AREA_GR}";
+}
+node.University {
+  caption: "{Name}";
+}
+node.Municipios {
+  caption: "{nombre}";
+}
+node.ResourceGroup {
+  caption: "{name}";
+  diameter: 80px;
+}
+relationship.DISK {
+  shaft-width: 2px;
+}
+relationship.NETWORK_INTERFACE {
+  color: #68BDF6;
+  border-color: #5CA8DB;
+  text-color-internal: #FFFFFF;
+  shaft-width: 2px;
+}
+node.Subnet {
+  defaultCaption: "<id>";
+}
