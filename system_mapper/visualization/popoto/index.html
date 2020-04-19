@@ -84,6 +84,12 @@
         },
         "Disk": {
             "returnAttributes": ["name", "uid", "properties"],
+            "getImagePath": function (node) {
+                return "image/node/DISK.svg";
+            },
+            "getDisplayType": function (node) {
+            return popoto.provider.node.DisplayTypes.IMAGE;
+            },
         },
         "NetworkInterface": {
             "returnAttributes": ["name", "uid", "properties"],

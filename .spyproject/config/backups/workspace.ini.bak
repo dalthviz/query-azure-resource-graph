@@ -6,5 +6,5 @@ save_non_project_files = False
 
 [main]
 version = 0.2.0
-recent_files = ['system_mapper\\provider_azure\\azure_mapper.py', 'system_mapper\\graph.py']
+recent_files = ['system_mapper\\visualization\\dash\\index.py', 'system_mapper\\visualization\\dash\\visualization.py', 'system_mapper\\provider_azure\\azure_mapper.py', 'system_mapper\\__init__.py', '..\\..\\..\\..\\Anaconda3\\envs\\tesis\\lib\\site-packages\\dash\\dash.py']
 

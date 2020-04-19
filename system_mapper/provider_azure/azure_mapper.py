@@ -9,20 +9,119 @@ import logging
 
 # Third-party imports
 from pandas import DataFrame
-import neomodel
 from neomodel import DoesNotExist
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+from requests_ntlm import HttpNtlmAuth
+import xmltodict
 
 # Local imports
-from azhelper import az_cli, az_login, az_resource_graph, SUCCESS_CODE
+from system_mapper.provider_azure.azhelper import (
+    az_cli, az_login, az_resource_graph, SUCCESS_CODE)
 from system_mapper.graph import (
-    BaseGraphMapper, Disk, NetworkInterface, NetworkSecurityGroup,
-    ResourceGroup, Subnet, VirtualNetwork, VirtualMachine)
+        DeployedApplication, BaseGraphMapper, Database, Disk, NetworkInterface,
+        NetworkSecurityGroup, ResourceGroup, Subnet, VirtualNetwork,
+        VirtualMachine)
+
+
+# Suppress SSL warnings
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 
 class AzureGraphMapper(BaseGraphMapper):
     """Azure implementation of a graph mapper."""
 
     PROVIDER_NAME = 'AZURE'
+
+    def get_app_data(
+            self,
+            host):
+        """
+        Get deployed application data from IIS.
+        """
+        port = self.config['port']
+        app_container_url = self.config['app_container_url']
+        app_container_token = self.config['app_container_token']
+        user = self.config['app_container_user']
+        password = self.config['app_container_password']
+        try:
+            response = []
+            # Check a way to search file
+            headers = {
+                'Access-Token': 'Bearer {token}'.format(
+                    token=app_container_token),
+                'Accept': 'application/hal+json'
+                }
+            # TODO: Setup cert file of the IIS server
+            base_url = 'https://{host}:{port}'.format(host=host, port=port)
+            base_info = requests.get(
+                base_url + app_container_url,
+                headers=headers,
+                verify=False,
+                auth=HttpNtlmAuth(user, password))
+            applications_status = base_info.status_code
+            applications_content = base_info.text
+            if applications_status == requests.codes.ok:
+                applications = json.loads(applications_content)
+                if 'websites' in applications:
+                    for application in applications['websites']:
+                        app_info_url = application['_links']['self']['href']
+                        app_info = requests.get(
+                            base_url + app_info_url,
+                            headers=headers,
+                            verify=False,
+                            auth=HttpNtlmAuth(user, password))
+                        app_info_status = app_info.status_code
+                        app_info_content = json.loads(
+                            app_info.text)
+                        if app_info_status == requests.codes.ok:
+                            dir_files_url = app_info_content[
+                                '_links']['files']['href']
+                            web_config = {}
+                            dir_files_info = requests.get(
+                                base_url + dir_files_url,
+                                headers=headers,
+                                verify=False,
+                                auth=HttpNtlmAuth(user, password))
+                            dir_files_info_content = json.loads(
+                                dir_files_info.text)
+                            files_info_url = dir_files_info_content[
+                                '_links']['files']['href']
+                            files_info = json.loads(requests.get(
+                                base_url + files_info_url,
+                                headers=headers,
+                                verify=False,
+                                auth=HttpNtlmAuth(user, password)).text)
+
+                            for file in files_info['files']:
+                                if file['name'] == "web.config":
+                                    file_url = file['_links']['self']['href']
+                                    file_info = requests.get(
+                                        base_url + file_url,
+                                        headers=headers,
+                                        verify=False,
+                                        auth=HttpNtlmAuth(user, password))
+                                    file_info_content_url = json.loads(
+                                        file_info.text)['file_info'][
+                                            '_links']['self']['href']
+                                    file_content = requests.get(
+                                        base_url +
+                                        file_info_content_url.replace(
+                                            '/api/files',
+                                            '/api/files/content'),
+                                        headers=headers,
+                                        verify=False,
+                                        auth=HttpNtlmAuth(user, password)).text
+                                    web_config = dict(
+                                            xmltodict.parse(
+                                                file_content,
+                                                process_namespaces=True))
+                                    app_info_content['web_config'] = web_config
+                        response.append(app_info_content)
+            return response
+        except Exception as e:
+            logging.error(e)
+            return {}
 
     def get_data(self):
         """Use Azure Resource Graph to get the data."""
@@ -46,6 +145,19 @@ class AzureGraphMapper(BaseGraphMapper):
                     '| where type == "microsoft.compute/virtualmachines"')
                 code, data['virtual_machines'] = az_resource_graph(
                     query=vm_query)
+
+                # TODO: Get application data:
+                data['applications'] = []
+                for vm in data['virtual_machines']:
+                    if not self.is_db_virtual_machine(vm):
+                        vm_ip = 'localhost'
+                        app_data = {}
+                        app_data['virtual_machine_id'] = vm['id']
+                        app_data['applications'] = self.get_app_data(vm_ip)
+                        apps = data['applications']
+                        apps.append(app_data)
+                        data['applications'] = apps
+
                 # Get Network interfaces
                 ni_query = (
                     'resources '
@@ -91,9 +203,23 @@ class AzureGraphMapper(BaseGraphMapper):
             logging.error("Execution error", exc_info=True)
             return data
 
-    def map_data(self):
+    def is_db_virtual_machine(self, data):
+        """
+        Check if the data corresponds to a virtual machine used as a database.
+        """
+        is_db_vm = False
+        properties = data['properties']
+        if 'storageProfile' in properties:
+            storage_profile = properties['storageProfile']
+            if 'imageReference' in storage_profile:
+                publisher = storage_profile['imageReference']['publisher']
+                is_db_vm = publisher in self.config['database_strings']
+        return is_db_vm
+
+    def map_data(self, reset=False):
         """Use data a initialize the database model."""
-        self.clear_database()
+        if reset:
+            self.clear_database()
         data = self.get_data()
 
         # Resource group
@@ -104,6 +230,10 @@ class AzureGraphMapper(BaseGraphMapper):
                 name=rg['resourceGroup'], properties=rg['properties'])
             resource_group.save()
 
+            # Map tags
+            obj_tags = resource_group.object_tags
+            self.add_tags(obj_tags, rg['tags'])
+
         # Virtual Networks
         virtual_networks = data['virtual_networks']
         for vn in virtual_networks:
@@ -112,17 +242,24 @@ class AzureGraphMapper(BaseGraphMapper):
                 properties=vn['properties'],
                 tags=vn['tags'])
             virtual_network.save()
+
             # Map properties
             obj_properties = virtual_network.object_properties
             unwanted_props = [
                 'properties', 'resourceGroup', 'tags', 'id', 'name']
             self.add_properties(
                 obj_properties, vn, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = virtual_network.object_tags
+            self.add_tags(obj_tags, vn['tags'])
+
             # Connect ni with resource groups
             vn_resource_group = vn['resourceGroup']
             ResourceGroup.nodes.get(
                 name=vn_resource_group).elements.connect(
                 virtual_network)
+
             # Subnets
             vn_subnets = vn['properties']['subnets']
             # TODO: Divide subnets from gateway subnets
@@ -139,17 +276,24 @@ class AzureGraphMapper(BaseGraphMapper):
                 uid=ni['id'], name=ni['name'], properties=ni['properties'],
                 tags=ni['tags'])
             network_interface.save()
+
             # Map properties
             obj_properties = network_interface.object_properties
             unwanted_props = [
                 'properties', 'resourceGroup', 'tags', 'id']
             self.add_properties(
                 obj_properties, ni, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = network_interface.object_tags
+            self.add_tags(obj_tags, ni['tags'])
+
             # Connect ni with resource groups
             ni_resource_group = ni['resourceGroup']
             ResourceGroup.nodes.get(
                 name=ni_resource_group).elements.connect(
                 network_interface)
+
             # Subnet assingment
             ip_configs = ni['properties']['ipConfigurations']
             for ipc in ip_configs:
@@ -160,29 +304,67 @@ class AzureGraphMapper(BaseGraphMapper):
         # Virtual Machines
         virtual_machines = data['virtual_machines']
         for vm in virtual_machines:
-            virtual_machine = VirtualMachine(
-                uid=vm['id'],
-                name=vm['name'],
-                properties=vm['properties'],
-                tags=vm['tags'])
-            virtual_machine.save()
+            if self.is_db_virtual_machine(vm):
+                virtual_machine = Database(
+                    uid=vm['id'],
+                    name=vm['name'],
+                    properties=vm['properties'],
+                    tags=vm['tags'])
+                virtual_machine.save()
+            else:
+                virtual_machine = VirtualMachine(
+                    uid=vm['id'],
+                    name=vm['name'],
+                    properties=vm['properties'],
+                    tags=vm['tags'])
+                virtual_machine.save()
+
             # Map properties
             obj_properties = virtual_machine.object_properties
             unwanted_props = [
                 'properties', 'resourceGroup', 'tags', 'id', 'name']
             self.add_properties(
                 obj_properties, vm, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = virtual_machine.object_tags
+            self.add_tags(obj_tags, vm['tags'])
+
             # Connect virtual machines with resource groups
             vm_resource_group = vm['resourceGroup']
             ResourceGroup.nodes.get(
                 name=vm_resource_group).elements.connect(
                 virtual_machine)
+
             # Connect vm with net_interfaces
             nis = vm['properties']['networkProfile']['networkInterfaces']
             for ni in nis:
                 net_interface_id = ni['id']
             virtual_machine.network_interfaces.connect(
                     NetworkInterface.nodes.get(uid=net_interface_id))
+
+        # TODO: Map to actual IIS data
+        applications = data['applications']
+        for vm_app_data in applications:
+            for app_data in vm_app_data['applications']:
+                print(app_data)
+                application = DeployedApplication(
+                    uid=app_data['id'],
+                    name=app_data['name'],
+                    properties=app_data)
+                application.save()
+
+                # Map properties
+                unwanted_properties = ['name', 'id']
+                self.add_properties(
+                    application.object_properties,
+                    app_data,
+                    unwanted_properties=unwanted_properties)
+
+                # Map deployed app to virtual_machine
+                VirtualMachine.nodes.get(
+                    uid=vm_app_data['virtual_machine_id']
+                    ).deployed_applications.connect(application)
 
         # Disks
         disks = data['disks']
@@ -191,12 +373,18 @@ class AzureGraphMapper(BaseGraphMapper):
                 uid=d['id'], name=d['name'], properties=d['properties'],
                 tags=d['tags'])
             disk.save()
+
             # Map properties
             obj_properties = disk.object_properties
             unwanted_props = [
                 'properties', 'resourceGroup', 'tags', 'managedBy', 'id']
             self.add_properties(
                 obj_properties, d, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = disk.object_tags
+            self.add_tags(obj_tags, d['tags'])
+
             # Connect disk with resource groups
             d_resource_group = d['resourceGroup']
             ResourceGroup.nodes.get(
@@ -209,10 +397,9 @@ class AzureGraphMapper(BaseGraphMapper):
                 VirtualMachine.nodes.get(
                     uid=d_virtual_machine).disks.connect(disk)
             except (DoesNotExist, KeyError) as e:
-                logging.info(
+                logging.error(
                     "Error while connecting disk with virtual machine")
-                logging.info(e)
-                pass
+                logging.error(e)
 
         # Network Security Group
         ns_groups = data['network_security_groups']
@@ -222,6 +409,7 @@ class AzureGraphMapper(BaseGraphMapper):
                 properties=nsg['properties'],
                 tags=nsg['tags'])
             ns_group.save()
+
             # Map properties
             obj_properties = ns_group.object_properties
             unwanted_props = [
@@ -229,6 +417,11 @@ class AzureGraphMapper(BaseGraphMapper):
                 'name']
             self.add_properties(
                 obj_properties, nsg, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = ns_group.object_tags
+            self.add_tags(obj_tags, nsg['tags'])
+
             # Connect disk with resource groups
             d_resource_group = nsg['resourceGroup']
             ResourceGroup.nodes.get(
@@ -240,15 +433,16 @@ class AzureGraphMapper(BaseGraphMapper):
 
         # Public IP
 
-    def export_data(data):
+    def export_data(data, filename='export_data.csv'):
         """Export data using Pandas."""
         df_data = DataFrame.from_dict(data)
         logging.info(df_data)
+        df_data.to_csv(filename)
         return df_data
 
 
-if __name__ == '__main__':
-    """Test AzureMapper."""
+def run_mapper(reset=True):
+    """Run mapper script to add populate database."""
     az_mapper = AzureGraphMapper()
-    az_mapper.map_data()
+    az_mapper.map_data(reset=reset)
     logging.info(az_cli(['account', 'list']))

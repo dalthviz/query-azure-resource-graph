@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # Licensed under the terms of the MIT License
 """
-Infrastructure domain mapping.
+Cloud application domain mapping.
 """
 # Standard library imports
 import sys
@@ -12,6 +12,8 @@ from neomodel import (
     clear_neo4j_database, config, db, JSONProperty, StructuredNode,
     StringProperty, Relationship)
 
+from system_mapper.config import CONFIG
+
 
 # ------------------------- Interface of a Graph mapper -----------------------
 class BaseGraphMapper():
@@ -20,8 +22,9 @@ class BaseGraphMapper():
     PROVIDER_NAME = None
 
     def __init__(
-            self, database_url='bolt://neo4j:ne@4j@localhost:7687',
+            self, database_url=CONFIG['neo4j_database_url'],
             logfile=None, logger=False):
+        self.config = CONFIG
         self.database_url = database_url
         config.DATABASE_URL = self.database_url
         self.db = db
@@ -35,6 +38,18 @@ class BaseGraphMapper():
         new_property.save()
         element_properties.connect(new_property)
 
+    def add_tag(self, element_tags, tag_key, tag_value):
+        """Add tag to element using the tags relation."""
+        new_tag = Tag(key=tag_key, value=tag_value)
+        new_tag.save()
+        element_tags.connect(new_tag)
+
+    def add_tags(self, element_tags, tags):
+        """Add mulitple tags to an element."""
+        if isinstance(tags, dict):
+            for key, value in tags.items():
+                self.add_tag(element_tags, key, value)
+
     def add_properties(
             self, element_properties, properties, unwanted_properties=['key']):
         """Add multiple properties to an element."""
@@ -42,6 +57,17 @@ class BaseGraphMapper():
             if key not in unwanted_properties and value:
                 self.add_property(
                     element_properties, property_key=key, property_value=value)
+
+    def get_app_data(
+            self,
+            host,
+            port=None,
+            app_container_url=None,
+            app_container_token=None,
+            user=None,
+            password=None):
+        """Get the app data from the application container."""
+        raise NotImplementedError
 
     def get_data(self):
         """Get the data from the provider."""
@@ -112,6 +138,7 @@ class ResourceGroup(StructuredNode):
     name = StringProperty()
     properties = JSONProperty()
     elements = Relationship('Element', 'ELEMENT_RESOURCE_GROUP')
+    object_tags = Relationship('Tag', 'OBJ_TAG')
 
 
 class Property(StructuredNode):
@@ -119,6 +146,12 @@ class Property(StructuredNode):
 
     key = StringProperty()
     value = StringProperty()
+
+
+class Tag(Property):
+    """key-value tag property of an element."""
+
+    pass
 
 
 class Element(StructuredNode):
@@ -130,6 +163,7 @@ class Element(StructuredNode):
     properties = JSONProperty()
     object_properties = Relationship('Property', 'OBJ_PROPERTY')
     tags = JSONProperty()
+    object_tags = Relationship('Tag', 'OBJ_TAG')
 
 
 # ---------------------------- Elements
@@ -139,10 +173,25 @@ class VirtualMachine(Element):
     disks = Relationship('Disk', 'DISK')
     network_interfaces = Relationship(
         'NetworkInterface', 'NETWORK_INTERFACE')
+    deployed_applications = Relationship(
+        'DeployedApplication', 'DEPLOYED_APPLICATION')
+
+
+class Database(VirtualMachine):
+    """Database concept."""
+
+    pass
+
+
+class DeployedApplication(Element):
+    """Application deployed concept."""
+
+    pass
 
 
 class Disk(Element):
     """Disk concept."""
+
     pass
 
 
@@ -154,21 +203,25 @@ class LoadBalancer(VirtualMachine):
 
 class PublicIp(Element):
     """Public IP concept."""
+
     pass
 
 
 class PrivateIp(Element):
     """Private IP concept."""
+
     pass
 
 
 class InboundRule(Element):
     """Inbound rule concept."""
+
     pass
 
 
 class OutboundRule(Element):
     """Outbound rule concept."""
+
     pass
 
 
@@ -191,11 +244,13 @@ class NetworkInterface(Element):
 
 class Subnet(Element):
     """Subnet concept."""
+
     pass
 
 
 class Connection(Element):
     """Virtual network connection."""
+
     pass
 
 

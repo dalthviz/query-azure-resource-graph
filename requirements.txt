@@ -3,4 +3,10 @@ resource-graph
 pandas
 pyecore
 neomodel
-
+requests
+requests_ntlm
+dash
+dash-html-components
+dash-cytoscape
+xmltodict
+python-dotenv

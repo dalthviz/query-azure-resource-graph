@@ -57,7 +57,8 @@ def az_resource_graph(query, subscription=None):
     """Use resource graph to query available resources."""
     command = ['graph', 'query', '-q', query, '--debug']
     if subscription is not None:
-        command += ['--subscription', subscription]
+        subscriptions = subscription.split()
+        command += ['--subscription'] + subscriptions
     command_str = ' '.join(command)
     logging.info('Running command: az {command}'.format(command=command_str))
     return az_cli(command)
