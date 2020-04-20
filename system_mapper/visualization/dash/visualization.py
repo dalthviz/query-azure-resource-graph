@@ -366,7 +366,7 @@ class GraphVisualization():
             """Update items displayed in graph following an expansion type."""
             elements = self.data
 
-            if n_clicks >= self.n_clicks and search:
+            if n_clicks > self.n_clicks and search:
                 elements = self.data = []
                 self.n_clicks += 1
                 variables = search.split('RETURN')[-1].strip()
@@ -377,7 +377,7 @@ class GraphVisualization():
                         custom=True,
                         variables=variables)
 
-            if n_clicks_rule and n_clicks_rule >= self.n_clicks_rule and rule:
+            if n_clicks_rule and n_clicks_rule > self.n_clicks_rule and rule:
                 elements = self.data = []
                 self.n_clicks_rule += 1
                 self.query_data(

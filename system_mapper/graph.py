@@ -180,7 +180,7 @@ class VirtualMachine(Element):
 class Database(VirtualMachine):
     """Database concept."""
 
-    pass
+    databases = Relationship('Database', 'DATA_SOURCE')
 
 
 class DeployedApplication(Element):
