@@ -309,7 +309,7 @@ class GraphVisualization():
         self.initial_rules_enable = rules_enable
         self.expand_properties = expand_properties
         self.element_types = element_types
-        self.n_clicks_rule = 0
+        self.selected_rule = None
         self.n_clicks = 0
         self.query_data(
             initial_query,
@@ -360,9 +360,8 @@ class GraphVisualization():
             return ''
 
         def _generate_elements(
-                nodeData=None, n_clicks=None, n_clicks_rule=None, search=None,
-                expansion_mode=None, custom_query=None, custom_query_var=None,
-                rule=None):
+                nodeData=None, n_clicks=None, search=None, rule=None,
+                expansion_mode=None, custom_query=None, custom_query_var=None):
             """Update items displayed in graph following an expansion type."""
             elements = self.data
 
@@ -376,10 +375,10 @@ class GraphVisualization():
                         filename=self.filename,
                         custom=True,
                         variables=variables)
-
-            if n_clicks_rule and n_clicks_rule > self.n_clicks_rule and rule:
+            print(rule)
+            if rule and self.selected_rule != rule:
                 elements = self.data = []
-                self.n_clicks_rule += 1
+                self.selected_rule = rule
                 self.query_data(
                         RULES_MAPPING[rule][0],
                         filename=self.filename,
@@ -431,22 +430,20 @@ class GraphVisualization():
                 Output('cytoscape' + self.name, 'elements'),
                 [Input('cytoscape' + self.name, 'tapNodeData'),
                  Input('search-submit' + self.name, 'n_clicks'),
-                 Input('rule-submit' + self.name, 'n_clicks')],
+                 Input('dropdown-rules' + self.name, 'value')],
                 [State('search' + self.name, 'value'),
                  State('dropdown-expand' + self.name, 'value'),
                  State('custom-query' + self.name, 'value'),
-                 State('custom-query-variables' + self.name, 'value'),
-                 State('dropdown-rules' + self.name, 'value')])
+                 State('custom-query-variables' + self.name, 'value')])
             def generate_elements_with_rules(
-                    nodeData=None, n_clicks=None, n_clicks_rule=None,
-                    search=None, expansion_mode=None, custom_query=None,
-                    custom_query_var=None, rule=None):
+                    nodeData=None, n_clicks=None, rule=None,
+                    search=None, expansion_mode=None,
+                    custom_query=None, custom_query_var=None):
                 return _generate_elements(
                     nodeData=nodeData, n_clicks=n_clicks,
-                    n_clicks_rule=n_clicks_rule,
-                    search=search, expansion_mode=expansion_mode,
+                    search=search, rule=rule, expansion_mode=expansion_mode,
                     custom_query=custom_query,
-                    custom_query_var=custom_query_var, rule=rule)
+                    custom_query_var=custom_query_var)
         else:
             @app.callback(
                 Output('cytoscape' + self.name, 'elements'),
@@ -461,11 +458,10 @@ class GraphVisualization():
                     expansion_mode=None, custom_query=None,
                     custom_query_var=None):
                 return _generate_elements(
-                    nodeData=nodeData, n_clicks=n_clicks,
-                    n_clicks_rule=None,
+                    nodeData=nodeData, n_clicks=n_clicks, rule=None,
                     search=search, expansion_mode=expansion_mode,
                     custom_query=custom_query,
-                    custom_query_var=custom_query_var, rule=None)
+                    custom_query_var=custom_query_var)
 
     def query_data(
             self, query, filename='data.json', element_type=None,
@@ -568,7 +564,7 @@ class GraphVisualization():
                 else:
                     self._format_data(line_data)
         self.expand_properties = True
-        print(len(self.data))
+        # print(len(self.data))
 
     def setup_default_graph(self):
         """General graph with all the nodes available."""
@@ -609,20 +605,14 @@ class GraphVisualization():
                             id='rules-box' + self.name,
                             children=[
                                 drc.NamedDropdown(
-                                    name='Rules',
+                                    name='Filters',
                                     id='dropdown-rules' + self.name,
                                     options=drc.DropdownOptionsList(
                                         *RULES
                                     ),
                                     value=RULE,
                                     clearable=False
-                                ),
-                                html.Button(
-                                    children='Check rule',
-                                    id='rule-submit' + self.name,
-                                    type='submit',
-                                    n_clicks=0),
-                                ],
+                                )],
                             style=STYLES['search'],
                             ) if self.rules_enable else '',
                         drc.NamedDropdown(

@@ -139,6 +139,21 @@ class AzureGraphMapper(BaseGraphMapper):
                     '"microsoft.resources/subscriptions/resourcegroups"')
                 code, data['resource_groups'] = az_resource_graph(
                     query=rg_query)
+
+                # Get Network interfaces
+                ni_query = (
+                    'resources '
+                    '| where type == "microsoft.network/networkinterfaces"')
+                code, data['network_interfaces'] = az_resource_graph(
+                    query=ni_query)
+
+                # Get Public IPs
+                public_ips_query = (
+                    'resources '
+                    '| where type == "microsoft.network/publicipaddresses"')
+                code, data['public_ips'] = az_resource_graph(
+                    query=public_ips_query)
+
                 # Get VMs
                 vm_query = (
                     'resources '
@@ -150,6 +165,7 @@ class AzureGraphMapper(BaseGraphMapper):
                 data['applications'] = []
                 for vm in data['virtual_machines']:
                     if not self.is_db_virtual_machine(vm):
+                        # TODO: Get application data using public ip
                         vm_ip = 'localhost'
                         app_data = {}
                         app_data['virtual_machine_id'] = vm['id']
@@ -158,12 +174,6 @@ class AzureGraphMapper(BaseGraphMapper):
                         apps.append(app_data)
                         data['applications'] = apps
 
-                # Get Network interfaces
-                ni_query = (
-                    'resources '
-                    '| where type == "microsoft.network/networkinterfaces"')
-                code, data['network_interfaces'] = az_resource_graph(
-                    query=ni_query)
                 # Get Networks security groups
                 nsg_query = (
                     'resources '
@@ -177,12 +187,6 @@ class AzureGraphMapper(BaseGraphMapper):
                     '| where type == "microsoft.network/virtualnetworks"')
                 code, data['virtual_networks'] = az_resource_graph(
                     query=v_networks_query)
-                # Get Public IPs
-                public_ips_query = (
-                    'resources '
-                    '| where type == "microsoft.network/publicipaddresses"')
-                code, data['public_ips'] = az_resource_graph(
-                    query=public_ips_query)
                 # Get disks
                 disks_query = (
                     'resources '
@@ -432,6 +436,7 @@ class AzureGraphMapper(BaseGraphMapper):
             # Using GatewaySubnets
 
         # Public IP
+        # TODO
 
     def export_data(data, filename='export_data.csv'):
         """Export data using Pandas."""

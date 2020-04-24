@@ -23,19 +23,52 @@ APP.layout = html.Div([
 def display_page(pathname):
     """Route to different visualizations."""
     if pathname == '/':
-        return html.Div([
-            dcc.Link('Navigate to "/full_map"', href='/apps/full_map'),
-            html.Br(),
-            dcc.Link(
-                'Navigate to "/resource_query_map"',
-                href='/apps/resource_query_map'),
-            html.Br(),
-            dcc.Link('Navigate to "/vm_query_map"', href='/apps/vm_query_map'),
-            html.Br(),
-            dcc.Link(
-                'Navigate to "/rules_query_map"',
-                href='/apps/rules_query_map'),
-        ])
+        return html.Div(
+            children=[
+                html.Div(
+                    className='six columns center',
+                    children=[
+                        html.Img(
+                            src='assets/images/full.PNG',
+                            width='50%'),
+                        html.Br(),
+                        dcc.Link(
+                            'Navigate the full mapping',
+                            href='/apps/full_map')]),
+                html.Div(
+                    className='six columns center',
+                    children=[
+                        html.Img(
+                            src='assets/images/resource_group.svg',
+                            width='50%'),
+                        html.Br(),
+                        dcc.Link(
+                            'Navigate starting in a resource group',
+                            href='/apps/resource_query_map'),
+                        ]),
+                html.Div(
+                    className='six columns center',
+                    children=[
+                        html.Img(
+                            src='assets/images/vmachine.svg',
+                            width='50%'),
+                        html.Br(),
+                        dcc.Link(
+                            'Navigate starting in a Virtual Machine',
+                            href='/apps/vm_query_map')
+                        ]),
+                html.Div(
+                    className='six columns center',
+                    children=[
+                        html.Img(
+                            src='assets/images/filter.PNG',
+                            width='50%'),
+                        html.Br(),
+                        dcc.Link(
+                            'Navigate by an initial filter',
+                            href='/apps/rules_query_map')
+                        ])
+                    ])
     if pathname == '/apps/full_map':
         return FULL_MAP_VISUALIZATION.setup_default_graph()
     elif pathname == '/apps/resource_query_map':
@@ -48,6 +81,6 @@ def display_page(pathname):
         return '404'
 
 
-def main_run():
+def main_run(debug=True):
     """Run dash index."""
-    APP.run_server(debug=True)
+    APP.run_server(debug=debug)

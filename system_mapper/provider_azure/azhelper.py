@@ -29,8 +29,10 @@ def az_cli(args):
     temp.seek(0)
     data = temp.read().strip()
     temp.close()
-
-    return code, json.loads(data.replace('null', '""'))
+    if code == SUCCESS_CODE:
+        return code, json.loads(data.replace('null', '""'))
+    else:
+        return code, data
 
 
 def az_status():
