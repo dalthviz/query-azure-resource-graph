@@ -90,6 +90,36 @@ DEFAULT_STYLESHEET = [
         }
     },
     {
+        "selector": '.OBJ_PROPERTY',
+        'style': {
+            "curve-style": "unbundled-bezier",
+            "line-style": "dashed",
+            "opacity": 0.45,
+            'z-index': 5000,
+            'content': 'data(label)'
+        }
+    },
+    {
+        "selector": '.OBJ_TAG',
+        'style': {
+            "curve-style": "unbundled-bezier",
+            "line-style": "dashed",
+            "opacity": 0.45,
+            'z-index': 5000,
+            'content': 'data(label)'
+        }
+    },
+    {
+        "selector": '.ELEMENT_RESOURCE_GROUP',
+        'style': {
+            "curve-style": "unbundled-bezier",
+            "line-style": "dashed",
+            "opacity": 0.45,
+            'z-index': 5000,
+            'content': 'data(label)'
+        }
+    },
+    {
         'selector': '.ResourceGroup',
         'style': {
             'height': 100,
@@ -384,6 +414,7 @@ class GraphVisualization():
                         filename=self.filename,
                         custom=True,
                         variables=RULES_MAPPING[rule][1].split(','))
+                return elements
 
             if not nodeData:
                 return elements
@@ -521,8 +552,9 @@ class GraphVisualization():
             if 'end' in line_data:
                 line_data['target'] = line_data['end']['id']
             line_data = {'data': line_data}
+            line_data['classes'] = ' ' + line_data['data']['label']
             if warning_style:
-                line_data['classes'] = ' warning'
+                line_data['classes'] += ' warning'
             if line_data not in self.relations:
                 self.relations.append(line_data)
         self.data.append(line_data)
@@ -564,7 +596,7 @@ class GraphVisualization():
                 else:
                     self._format_data(line_data)
         self.expand_properties = True
-        # print(len(self.data))
+        print(len(self.data))
 
     def setup_default_graph(self):
         """General graph with all the nodes available."""
@@ -636,7 +668,7 @@ class GraphVisualization():
                             clearable=False
                         ),
                         drc.NamedDropdown(
-                            name='Expand',
+                            name='Expand by',
                             id='dropdown-expand' + self.name,
                             options=drc.DropdownOptionsList(
                                 *self.element_types
@@ -662,6 +694,12 @@ class GraphVisualization():
                                     value='',
                                     placeholder='n, r, m')
                                 ]) if self.expand_enable else '',
+                                html.Div(
+                                    className='center',
+                                    children=[
+                                        html.Img(
+                                            src='../assets/images/convention.png',
+                                            width='50%')])
                     ]),
                     dcc.Tab(label='JSON', children=[
                         html.Div(style=STYLES['tab'], children=[
