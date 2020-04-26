@@ -353,21 +353,18 @@ class GraphVisualization():
     def setup_callbacks(self):
         """Set-up Dash app callbacks."""
         app = self.app
-        @app.callback(Output('tap-node-json-output' + self.name, 'children'),
-                      [Input('cytoscape' + self.name, 'tapNode')])
-        def display_tap_node(data):
-            if data:
-                return json.dumps(data['data'], indent=2)
-            else:
-                return ''
 
-        @app.callback(Output('tap-edge-json-output' + self.name, 'children'),
-                      [Input('cytoscape' + self.name, 'tapEdge')])
-        def display_tap_edge(data):
-            if data:
-                return json.dumps(data, indent=2)
+        @app.callback(
+            Output('tap-element-json-output' + self.name, 'children'),
+            [Input('cytoscape' + self.name, 'tapNode'),
+             Input('cytoscape' + self.name, 'tapEdge')])
+        def display_tap_element(node_data, edge_data):
+            if node_data:
+                return json.dumps(node_data['data'], indent=2)
+            elif edge_data:
+                return json.dumps(edge_data['data'], indent=2)
             else:
-                return ''
+                return 'Tap a node or edge to see its properties here'
 
         @app.callback(Output('cytoscape' + self.name, 'layout'),
                       [Input('dropdown-layout' + self.name, 'value')])
@@ -615,6 +612,12 @@ class GraphVisualization():
             ]),
 
             html.Div(className='four columns', children=[
+                html.Div(
+                        className='center',
+                        children=[
+                            html.Img(
+                                src='../assets/images/convention.png'
+                                )]),
                 dcc.Tabs(id='tabs' + self.name, children=[
                     dcc.Tab(label='Control Panel', children=[
                         html.Div(
@@ -692,27 +695,16 @@ class GraphVisualization():
                                     name='Custom Query Variables',
                                     id='custom-query-variables' + self.name,
                                     value='',
-                                    placeholder='n, r, m')
-                                ]) if self.expand_enable else '',
-                                html.Div(
-                                    className='center',
-                                    children=[
-                                        html.Img(
-                                            src='../assets/images/convention.png',
-                                            width='50%')])
+                                    placeholder='n, r, m')]
+                            ) if self.expand_enable else ''
                     ]),
-                    dcc.Tab(label='JSON', children=[
+                    dcc.Tab(label='Elements Properties', children=[
                         html.Div(style=STYLES['tab'], children=[
-                            html.P('Node Object JSON:'),
+                            html.P('Element Object JSON:'),
                             html.Pre(
-                                id='tap-node-json-output' + self.name,
+                                id='tap-element-json-output' + self.name,
                                 style=STYLES['json-output']
                             ),
-                            html.P('Edge Object JSON:'),
-                            html.Pre(
-                                id='tap-edge-json-output' + self.name,
-                                style=STYLES['json-output']
-                            )
                         ])
                     ])
                 ]),
