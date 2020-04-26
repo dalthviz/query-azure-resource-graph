@@ -600,6 +600,11 @@ class GraphVisualization():
         # Set layout
         layout = html.Div([
             html.Div(className='eight columns', children=[
+                dcc.Loading(
+                    id='loading-1',
+                    type='default',
+                    children=html.Div(id='cytoscape' + self.name)
+                ),
                 cyto.Cytoscape(
                     id='cytoscape' + self.name,
                     elements=self.data,
