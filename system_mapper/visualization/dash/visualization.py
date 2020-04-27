@@ -20,13 +20,15 @@ import dash_core_components as dcc
 import dash_html_components as html
 # Neomodel database URL
 from neomodel import config, db
+from neobolt.exceptions import CypherError
 config.DATABASE_URL = CONFIG['neo4j_database_url']
 
 
 ELEMENT_TYPES = [
     'ResourceGroup', 'VirtualMachine', 'Database', 'Disk', 'NetworkInterface',
-    'Subnet', 'VirtualNetwork', 'NetworkSecurityGroup', 'Property',
-    'DeployedApplication', 'Tag', 'Custom', 'LoadBalancer', 'PublicIp']
+    'Subnet', 'VirtualNetwork', 'NetworkSecurityGroup', 'LoadBalancer',
+    'PublicIp', 'PrivateIp', 'Property', 'Tag', 'DeployedApplication',
+    'Custom']
 
 
 RULES = CONFIG['rules']
@@ -533,8 +535,11 @@ class GraphVisualization():
         else:
             query = query.format(save_path=full_path)
         print(query)
-        db.cypher_query(query)
-        self.format_data(filename, variables)
+        try:
+            db.cypher_query(query)
+            self.format_data(filename, variables)
+        except CypherError:
+            pass
 
     def _format_data(self, line_data, warning_style=False):
         """Format data and add it."""
@@ -625,19 +630,16 @@ class GraphVisualization():
                 dcc.Loading(
                     id='loading-1',
                     type='default',
-                    children=html.Div(id='cytoscape' + self.name)
-                ),
-                cyto.Cytoscape(
-                    id='cytoscape' + self.name,
-                    elements=self.data,
-                    stylesheet=DEFAULT_STYLESHEET,
-                    style={
-                        'height': '100vh',
-                        'width': '100%'
-                    }
+                    children=cyto.Cytoscape(
+                        id='cytoscape' + self.name,
+                        elements=self.data,
+                        stylesheet=DEFAULT_STYLESHEET,
+                        style={
+                            'height': '100vh',
+                            'width': '100%'
+                        })
                 )
             ]),
-
             html.Div(className='four columns', children=[
                 html.Div(
                         className='center',
@@ -694,7 +696,7 @@ class GraphVisualization():
                                 'spread',
                                 'euler'
                             ),
-                            value='cose-bilkent',
+                            value='random',
                             clearable=False
                         ),
                         drc.NamedDropdown(

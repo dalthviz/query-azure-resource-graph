@@ -258,6 +258,12 @@ class AzureGraphMapper(BaseGraphMapper):
             obj_tags = p_ip.object_tags
             self.add_tags(obj_tags, pip['tags'])
 
+            # Connect public ip with resource groups
+            public_ip_resource_group = pip['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=public_ip_resource_group).elements.connect(
+                p_ip)
+
         # Load balancers
         load_balancers = data['load_balancers']
         for lb in load_balancers:
@@ -279,6 +285,12 @@ class AzureGraphMapper(BaseGraphMapper):
             # Map tags
             obj_tags = lbalancer.object_tags
             self.add_tags(obj_tags, lb['tags'])
+
+            # Connect load balancer with resource groups
+            lb_resource_group = lb['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=lb_resource_group).elements.connect(
+                lbalancer)
 
             # Map public Ip address
             lb_public_id = lb['properties']['frontendIPConfigurations'][0][
@@ -377,7 +389,7 @@ class AzureGraphMapper(BaseGraphMapper):
                 nsg = ni['properties']['networkSecurityGroup']['id']
                 network_interface.network_security_group.connect(
                     NetworkSecurityGroup.nodes.get(
-                        uid=ni))
+                        uid=nsg))
 
             ip_configs = ni['properties']['ipConfigurations']
             for ipc in ip_configs:
@@ -402,7 +414,7 @@ class AzureGraphMapper(BaseGraphMapper):
                 # Connect with load balancer
                 if 'loadBalancerBackendAddressPools' in ipc['properties']:
                     backend_pool_id = ipc['properties'][
-                        'loadBalancerBackendAddressPools']['id']
+                        'loadBalancerBackendAddressPools'][0]['id']
                     LoadBalancer.nodes.get(
                         backend_pool_id=backend_pool_id
                         ).network_interfaces.connect(network_interface)
@@ -510,7 +522,6 @@ class AzureGraphMapper(BaseGraphMapper):
         # TODO
         # Network Peerings
             # Using GatewaySubnets
-
 
     def export_data(data, filename='export_data.csv'):
         """Export data using Pandas."""
