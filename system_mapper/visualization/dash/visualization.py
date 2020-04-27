@@ -26,7 +26,7 @@ config.DATABASE_URL = CONFIG['neo4j_database_url']
 ELEMENT_TYPES = [
     'ResourceGroup', 'VirtualMachine', 'Database', 'Disk', 'NetworkInterface',
     'Subnet', 'VirtualNetwork', 'NetworkSecurityGroup', 'Property',
-    'DeployedApplication', 'Tag', 'Custom']
+    'DeployedApplication', 'Tag', 'Custom', 'LoadBalancer', 'PublicIp']
 
 
 RULES = CONFIG['rules']
@@ -236,6 +236,28 @@ DEFAULT_STYLESHEET = [
             'background-fit': 'cover',
             'background-image': 'https://code.benco.io/icon-collection/'
             'azure-patterns/devops-deploy-cloud.svg'
+        }
+    },
+    {
+        'selector': '.LoadBalancer',
+        'style': {
+            'height': 80,
+            'width': 80,
+            'background-color': 'gray',
+            'background-fit': 'cover',
+            'background-image': 'https://code.benco.io/icon-collection/'
+            'azure-patterns/app-service-logic.svg'
+        }
+    },
+    {
+        'selector': '.PublicIp',
+        'style': {
+            'height': 80,
+            'width': 80,
+            'background-color': 'gray',
+            'background-fit': 'cover',
+            'background-image': 'https://code.benco.io/icon-collection/'
+            'azure-patterns/advanced-functionality.svg'
         }
     },
     {
@@ -610,7 +632,7 @@ class GraphVisualization():
                     elements=self.data,
                     stylesheet=DEFAULT_STYLESHEET,
                     style={
-                        'height': '95vh',
+                        'height': '100vh',
                         'width': '100%'
                     }
                 )

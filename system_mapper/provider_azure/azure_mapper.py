@@ -21,7 +21,7 @@ from system_mapper.provider_azure.azhelper import (
 from system_mapper.graph import (
         DeployedApplication, BaseGraphMapper, Database, Disk, NetworkInterface,
         NetworkSecurityGroup, ResourceGroup, Subnet, VirtualNetwork,
-        VirtualMachine)
+        VirtualMachine, LoadBalancer, PublicIp, PrivateIp)
 
 
 # Suppress SSL warnings
@@ -238,6 +238,53 @@ class AzureGraphMapper(BaseGraphMapper):
             obj_tags = resource_group.object_tags
             self.add_tags(obj_tags, rg['tags'])
 
+        # Public IP
+        public_ips = data['public_ips']
+        for pip in public_ips:
+            p_ip = PublicIp(
+                uid=pip['id'], name=pip['name'],
+                properties=pip['properties'],
+                tags=pip['tags'])
+            p_ip.save()
+
+            # Map properties
+            obj_properties = p_ip.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties, pip, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = p_ip.object_tags
+            self.add_tags(obj_tags, pip['tags'])
+
+        # Load balancers
+        load_balancers = data['load_balancers']
+        for lb in load_balancers:
+            lbalancer = LoadBalancer(
+                uid=lb['id'], name=lb['name'],
+                properties=lb['properties'],
+                tags=lb['tags'],
+                backend_pool_id=lb['properties'][
+                        'backendAddressPools'][0]['id'])
+            lbalancer.save()
+
+            # Map properties
+            obj_properties = lbalancer.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties, lb, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = lbalancer.object_tags
+            self.add_tags(obj_tags, lb['tags'])
+
+            # Map public Ip address
+            lb_public_id = lb['properties']['frontendIPConfigurations'][0][
+                'properties']['publicIPAddress']['id']
+            lbalancer.public_ip.connect(PublicIp.nodes.get(uid=lb_public_id))
+
         # Virtual Networks
         virtual_networks = data['virtual_networks']
         for vn in virtual_networks:
@@ -273,6 +320,33 @@ class AzureGraphMapper(BaseGraphMapper):
                 subnet.save()
                 virtual_network.subnets.connect(subnet)
 
+        # Network Security Group
+        ns_groups = data['network_security_groups']
+        for nsg in ns_groups:
+            ns_group = NetworkSecurityGroup(
+                uid=nsg['id'], name=nsg['name'],
+                properties=nsg['properties'],
+                tags=nsg['tags'])
+            ns_group.save()
+
+            # Map properties
+            obj_properties = ns_group.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'managedBy', 'id',
+                'name']
+            self.add_properties(
+                obj_properties, nsg, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = ns_group.object_tags
+            self.add_tags(obj_tags, nsg['tags'])
+
+            # Connect network security group with resource groups
+            d_resource_group = nsg['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=d_resource_group).elements.connect(
+                ns_group)
+
         # Network Interfaces
         network_interfaces = data['network_interfaces']
         for ni in network_interfaces:
@@ -298,12 +372,40 @@ class AzureGraphMapper(BaseGraphMapper):
                 name=ni_resource_group).elements.connect(
                 network_interface)
 
-            # Subnet assingment
+            # Connect with network security group
+            if 'networkSecurityGroup' in ni['properties']:
+                nsg = ni['properties']['networkSecurityGroup']['id']
+                network_interface.network_security_group.connect(
+                    NetworkSecurityGroup.nodes.get(
+                        uid=ni))
+
             ip_configs = ni['properties']['ipConfigurations']
             for ipc in ip_configs:
+                # Subnet assingment
                 ni_subnet = ipc['properties']['subnet']['id']
                 network_interface.subnet.connect(Subnet.nodes.get(
                     uid=ni_subnet))
+
+                # Private Ip address
+                ni_subnet = ipc['properties']['subnet']['id']
+                private_ip = PrivateIp(
+                    name=ipc['properties']['privateIPAddress'])
+                private_ip.save()
+                network_interface.private_ip.connect(private_ip)
+
+                # Connect with public ip address
+                if 'publicIPAddress' in ipc['properties']:
+                    ni_subnet = ipc['properties']['publicIPAddress']['id']
+                    network_interface.public_ip.connect(PublicIp.nodes.get(
+                        uid=ni_subnet))
+
+                # Connect with load balancer
+                if 'loadBalancerBackendAddressPools' in ipc['properties']:
+                    backend_pool_id = ipc['properties'][
+                        'loadBalancerBackendAddressPools']['id']
+                    LoadBalancer.nodes.get(
+                        backend_pool_id=backend_pool_id
+                        ).network_interfaces.connect(network_interface)
 
         # Virtual Machines
         virtual_machines = data['virtual_machines']
@@ -405,38 +507,10 @@ class AzureGraphMapper(BaseGraphMapper):
                     "Error while connecting disk with virtual machine")
                 logging.error(e)
 
-        # Network Security Group
-        ns_groups = data['network_security_groups']
-        for nsg in ns_groups:
-            ns_group = NetworkSecurityGroup(
-                uid=nsg['id'], name=nsg['name'],
-                properties=nsg['properties'],
-                tags=nsg['tags'])
-            ns_group.save()
-
-            # Map properties
-            obj_properties = ns_group.object_properties
-            unwanted_props = [
-                'properties', 'resourceGroup', 'tags', 'managedBy', 'id',
-                'name']
-            self.add_properties(
-                obj_properties, nsg, unwanted_properties=unwanted_props)
-
-            # Map tags
-            obj_tags = ns_group.object_tags
-            self.add_tags(obj_tags, nsg['tags'])
-
-            # Connect disk with resource groups
-            d_resource_group = nsg['resourceGroup']
-            ResourceGroup.nodes.get(
-                name=d_resource_group).elements.connect(
-                ns_group)
-
+        # TODO
         # Network Peerings
             # Using GatewaySubnets
 
-        # Public IP
-        # TODO
 
     def export_data(data, filename='export_data.csv'):
         """Export data using Pandas."""

@@ -4,8 +4,8 @@
 Main.
 """
 from system_mapper.visualization.dash.index import main_run
-# from system_mapper.provider_azure.azure_mapper import run_mapper
+from system_mapper.provider_azure.azure_mapper import run_mapper
 
 if __name__ == '__main__':
-    # run_mapper()
+    run_mapper()
     main_run(debug=False)

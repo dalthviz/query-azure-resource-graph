@@ -195,10 +195,14 @@ class Disk(Element):
     pass
 
 
-class LoadBalancer(VirtualMachine):
+class LoadBalancer(Element):
     """Load Balancer concept."""
 
-    pass
+    network_interfaces = Relationship('NetworkInterface', 'VM_BACKEND_POOL')
+    public_ip = Relationship('PublicIp', 'LB_PUBLIC_IP')
+    inbound_rules = Relationship('InboundRule', 'INBOUND_RULE')
+    outbound_rules = Relationship('OutboundRule', 'OUTBOUND_RULE')
+    backend_pool_id = StringProperty()
 
 
 class PublicIp(Element):
