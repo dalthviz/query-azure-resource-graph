@@ -33,7 +33,7 @@ An utility to retrieve infrastructure and system information from a cloud provid
 * Clone the repository.
 * Install the required modules referenced above (`pip install -r requirements.txt`).
 * Check that a Neo4j instance is running in the default port and has as user `neo4j` and password `ne@4j` and properly configured as stated above.
-* Config the relavant options in the `config.json` file. For example a config that uses Azure and IIS Administration API to get the systems information:
+* Config the relevant options in the `config.json` file (you can specify the path to the file using a `.env` file with the env var `CONFIG_FILE_PATH` or adding an `config.json` file add the `system_mapper/` dir). For example a config that uses Azure and IIS Administration API to get the information:
 
 ```json
 
