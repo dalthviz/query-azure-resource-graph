@@ -10,3 +10,4 @@ dash-html-components
 dash-cytoscape
 xmltodict
 python-dotenv
+waitress

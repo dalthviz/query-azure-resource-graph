@@ -68,7 +68,11 @@ An utility to retrieve infrastructure and system information from a cloud provid
     "app_container_url": "/api/webserver/websites/",
     "app_container_token": "some token to access the ISS API. More info: https://docs.microsoft.com/en-us/IIS-Administration/management-portal/connecting",
     "app_container_user": "<windows username>",
-    "app_container_password": "<windows user password>"
+    "app_container_password": "<windows user password>",
+    "visualization_port": "80",
+    "visualization_n_threads": "100",
+    "visualization_dev": false,
+    "visualization_host": "0.0.0.0"
 }
 ```
 Some notes regarding the config file:
@@ -88,4 +92,17 @@ Some notes regarding the config file:
         * `app_container_token`: token to use to authenticate the request made to the IIS Administration API.
         * `app_container_user`: windows user to use to authenticate via NTLM
         * `app_container_password`: windows user password to authenticate via NTLM
-    
+    * Visualization dashboard related config:
+        * `visualization_port`: Port for the server to launch the dash app.
+        * `visualization_n_threads`: Number of threads the server in prod mode will use.
+        * `visualization_dev`: If the launched dash app is dev mode (run from Dash) or prod mode (waitress).
+        * `visualization_host`: Host for the server.
+
+# Run
+
+From the root directory run:
+
+```python
+python -m system_mapper.main
+```
+

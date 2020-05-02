@@ -175,6 +175,7 @@ traitlets==4.3.3
 urllib3==1.24.3
 vsts==0.1.25
 vsts-cd-manager==1.0.2
+waitress==1.4.3
 wcwidth==0.1.8
 websocket-client==0.56.0
 Werkzeug==1.0.0

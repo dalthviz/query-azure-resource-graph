@@ -18,6 +18,7 @@ APP.layout = html.Div([
     html.Div(id='page-content')
 ])
 
+
 @APP.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])
 def display_page(pathname):
@@ -81,6 +82,6 @@ def display_page(pathname):
         return '404'
 
 
-def main_run(debug=True):
+def main_run(*args, **kwargs):
     """Run dash index."""
-    APP.run_server(debug=debug)
+    APP.run_server(*args, **kwargs)
