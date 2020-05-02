@@ -8,6 +8,8 @@ An utility to retrieve infrastructure and system information from a cloud provid
 
 #### Requirements
 * [Python 3.6](https://www.python.org/downloads/release/python-368/)
+* [Microsoft az cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest)
+    * [Microsoft resource-graph cli extension](https://docs.microsoft.com/en-us/cli/azure/ext/resource-graph/?view=azure-cli-latest)
 * [Microsoft Azure Python SDK](https://github.com/Azure/azure-sdk-for-python/tree/master/sdk)
 * [Microsoft Authentication Library (MSAL)](https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-v2-libraries)
 * [Pandas](https://pandas.pydata.org/)
