@@ -15,9 +15,11 @@ from system_mapper.config import CONFIG
 # Third-party imports
 import dash
 from dash.dependencies import Input, Output, State
-import dash_cytoscape as cyto
 import dash_core_components as dcc
+import dash_cytoscape as cyto
 import dash_html_components as html
+import dash_treeview_antd
+
 # Neomodel database URL
 from neomodel import config, db
 from neobolt.exceptions import CypherError
@@ -324,7 +326,8 @@ STYLES = {
     'tab': {'height': 'calc(98vh - 80px)'},
     'inputs': {'display': 'none'},
     'text-inputs': {'width': '100%'},
-    'search': {'width': '100%'}
+    'search': {'width': '100%'},
+    'reset': {'width': '100%'}
 }
 
 # Load extra layouts
@@ -365,30 +368,93 @@ class GraphVisualization():
         self.element_types = element_types
         self.selected_rule = None
         self.n_clicks = 0
+        self.n_clicks_reset = 0
+        self.element_data = None
+
+        self.initial_query = initial_query
+        self.initial_element_type = initial_element_type
+        self.initial_variables = initial_variables
+        self.initial_custom_query = initial_custom_query
         self.query_data(
-            initial_query,
+            self.initial_query,
             filename=self.filename,
-            element_type=initial_element_type,
-            variables=initial_variables,
-            custom=initial_custom_query)
+            element_type=self.initial_element_type,
+            variables=self.initial_variables,
+            custom=self.initial_custom_query)
         self.setup_default_graph()
         self.setup_callbacks()
+
+    def _treeify(self, data, key=None):
+        """
+        Format JSON follwoing {title:str, children:[{}, ..]} tree spec.
+
+        Spec used by: https://ant.design/components/tree/
+
+        { title: Element data,
+          children: [
+              {
+                  title: children1,
+                  children: [{ title: value1}]
+              },
+              {
+                  title: childrenlist2,
+                  children: [
+                      {
+                          title: children21
+                          children: [{ title: valuechildre21 }]
+                      },
+                      {
+                          title: children22
+                          children: [{ title: valuechildre22 }]
+                      }]
+             }]
+          }
+        """
+        if isinstance(data, dict) and not key:
+            return {
+                   'title': 'Element data',
+                   'children': [
+                       self._treeify(children, key=key)
+                       for key, children in data.items()]
+                   }
+        elif isinstance(data, dict) and key:
+            return {
+                   'title': key,
+                   'children': [
+                       self._treeify(children, key=key)
+                       for key, children in data.items()]
+                   }
+        elif isinstance(data, list):
+            return {
+               'title': key,
+               'children': [
+                   self._treeify(children)
+                   for idx, children in enumerate(data, start=1)]
+               }
+        elif key:
+            return {'title': key, 'children': [self._treeify(data)]}
+        else:  # leave node, no recursion
+            return {'title': data}
 
     def setup_callbacks(self):
         """Set-up Dash app callbacks."""
         app = self.app
 
         @app.callback(
-            Output('tap-element-json-output' + self.name, 'children'),
-            [Input('cytoscape' + self.name, 'tapNode'),
-             Input('cytoscape' + self.name, 'tapEdge')])
-        def display_tap_element(node_data, edge_data):
-            if node_data:
-                return json.dumps(node_data['data'], indent=2)
-            elif edge_data:
-                return json.dumps(edge_data['data'], indent=2)
-            else:
-                return 'Tap a node or edge to see its properties here'
+            Output('hover-element-json-output' + self.name, 'data'),
+            [Input('cytoscape' + self.name, 'mouseoverNodeData'),
+             Input('cytoscape' + self.name, 'mouseoverEdgeData')])
+        def display_hover_element(node_data, edge_data):
+            data = self.element_data
+            if node_data and node_data != self.element_data:
+                data = node_data
+            elif edge_data and edge_data != self.element_data:
+                data = edge_data
+            self.element_data = data
+            parse_data = 'Hover a node or edge to see its properties here'
+            if data:
+                parse_data = self._treeify(data)
+            return parse_data
 
         @app.callback(Output('cytoscape' + self.name, 'layout'),
                       [Input('dropdown-layout' + self.name, 'value')])
@@ -411,10 +477,21 @@ class GraphVisualization():
             return ''
 
         def _generate_elements(
-                nodeData=None, n_clicks=None, search=None, rule=None,
-                expansion_mode=None, custom_query=None, custom_query_var=None):
+                nodeData=None, n_clicks=None, n_click_reset=None, search=None,
+                rule=None, expansion_mode=None, custom_query=None,
+                custom_query_var=None):
             """Update items displayed in graph following an expansion type."""
             elements = self.data
+
+            if n_click_reset > self.n_clicks_reset:
+                elements = self.data = []
+                self.n_clicks_reset += 1
+                self.query_data(
+                    self.initial_query,
+                    filename=self.filename,
+                    element_type=self.initial_element_type,
+                    variables=self.initial_variables,
+                    custom=self.initial_custom_query)
 
             if n_clicks > self.n_clicks and search:
                 elements = self.data = []
@@ -482,36 +559,39 @@ class GraphVisualization():
                 Output('cytoscape' + self.name, 'elements'),
                 [Input('cytoscape' + self.name, 'tapNodeData'),
                  Input('search-submit' + self.name, 'n_clicks'),
+                 Input('reset-submit' + self.name, 'n_clicks'),
                  Input('dropdown-rules' + self.name, 'value')],
                 [State('search' + self.name, 'value'),
                  State('dropdown-expand' + self.name, 'value'),
                  State('custom-query' + self.name, 'value'),
                  State('custom-query-variables' + self.name, 'value')])
             def generate_elements_with_rules(
-                    nodeData=None, n_clicks=None, rule=None,
-                    search=None, expansion_mode=None,
+                    nodeData=None, n_clicks=None, n_click_reset=None,
+                    rule=None, search=None, expansion_mode=None,
                     custom_query=None, custom_query_var=None):
                 return _generate_elements(
                     nodeData=nodeData, n_clicks=n_clicks,
-                    search=search, rule=rule, expansion_mode=expansion_mode,
-                    custom_query=custom_query,
+                    n_click_reset=n_click_reset, search=search, rule=rule,
+                    expansion_mode=expansion_mode, custom_query=custom_query,
                     custom_query_var=custom_query_var)
         else:
             @app.callback(
                 Output('cytoscape' + self.name, 'elements'),
                 [Input('cytoscape' + self.name, 'tapNodeData'),
-                 Input('search-submit' + self.name, 'n_clicks')],
+                 Input('search-submit' + self.name, 'n_clicks'),
+                 Input('reset-submit' + self.name, 'n_clicks')],
                 [State('search' + self.name, 'value'),
                  State('dropdown-expand' + self.name, 'value'),
                  State('custom-query' + self.name, 'value'),
                  State('custom-query-variables' + self.name, 'value')])
             def generate_elements(
-                    nodeData=None, n_clicks=None, search=None,
-                    expansion_mode=None, custom_query=None,
+                    nodeData=None, n_clicks=None, n_click_reset=None,
+                    search=None, expansion_mode=None, custom_query=None,
                     custom_query_var=None):
                 return _generate_elements(
-                    nodeData=nodeData, n_clicks=n_clicks, rule=None,
-                    search=search, expansion_mode=expansion_mode,
+                    nodeData=nodeData, n_clicks=n_clicks,
+                    n_click_reset=n_click_reset,
+                    rule=None, search=search, expansion_mode=expansion_mode,
                     custom_query=custom_query,
                     custom_query_var=custom_query_var)
 
@@ -725,16 +805,31 @@ class GraphVisualization():
                                     id='custom-query-variables' + self.name,
                                     value='',
                                     placeholder='n, r, m')]
-                            ) if self.expand_enable else ''
+                            ) if self.expand_enable else '',
+                        html.Div(
+                            id='search-box' + self.name,
+                            children=[
+                                html.Button(
+                                    children='Reset',
+                                    id='reset-submit' + self.name,
+                                    type='submit',
+                                    n_clicks=0),
+                                ],
+                            style=STYLES['reset'],
+                            ),
                     ]),
                     dcc.Tab(label='Elements Properties', children=[
-                        html.Div(style=STYLES['tab'], children=[
-                            html.P('Element Object JSON:'),
-                            html.Pre(
-                                id='tap-element-json-output' + self.name,
-                                style=STYLES['json-output']
-                            ),
-                        ])
+                        html.Div(
+                            style=STYLES['tab'], children=[
+                                html.P('Element Object JSON:'),
+                                dash_treeview_antd.TreeView(
+                                    id='hover-element-json-output' + self.name,
+                                    multiple=False,
+                                    checkable=False,
+                                    selected=[],
+                                    expanded=['root'],
+                                    data={})
+                                ])
                     ])
                 ]),
             ])
@@ -776,14 +871,4 @@ RULES_QUERY_VISUALIZATION = GraphVisualization(
 
 if __name__ == '__main__':
     # Example run of a visualization
-    initial_query = ELEMENT_QUERY
-    initial_element_type = 'ResourceGroup'
-    initial_variables = ['nod']
-
-    visualization = GraphVisualization(
-        initial_query,
-        "query",
-        initial_element_type=initial_element_type,
-        initial_variables=initial_variables,
-        expand_enable=True)
-    visualization.run()
+    RESOURCE_QUERY_VISUALIZATION.run()

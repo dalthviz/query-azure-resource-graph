@@ -8,6 +8,7 @@ requests_ntlm
 dash
 dash-html-components
 dash-cytoscape
+dash-treeview-antd
 xmltodict
 python-dotenv
 waitress

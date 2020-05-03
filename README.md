@@ -1,22 +1,26 @@
 # System mapper
 
-An utility to retrieve infrastructure and system information from a cloud provider (Azure for now) and store it in a graph database (Neo4j)
+An utility to retrieve infrastructure and system information from a cloud provider (Azure for now), store the info in a graph database (Neo4j) and visualize it using Dash
 
 ## Requirements
 
-### Python
+### Python Libraries and CLI utilities
 
-#### Requirements
+#### Python
+
 * [Python 3.6](https://www.python.org/downloads/release/python-368/)
-* [Microsoft az cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest)
-    * [Microsoft resource-graph cli extension](https://docs.microsoft.com/en-us/cli/azure/ext/resource-graph/?view=azure-cli-latest)
 * [Microsoft Azure Python SDK](https://github.com/Azure/azure-sdk-for-python/tree/master/sdk)
 * [Microsoft Authentication Library (MSAL)](https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-v2-libraries)
-* [Pandas](https://pandas.pydata.org/)
 * [neomodel](https://github.com/neo4j-contrib/neomodel)
+* [dash-cytoscape](https://github.com/plotly/dash-cytoscape)
+* For more details see the `requirements.txt` file. Also, just in case, you should create an env to do the installation using something like [`virtualenv`](https://virtualenv.pypa.io/en/latest/)  or [`conda`](https://docs.conda.io/en/latest/)
 
+#### CLI
 
-### Environment (database and IIS Administration API)
+* [Microsoft az cli](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli-windows?view=azure-cli-latest)
+    * [Microsoft resource-graph cli extension](https://docs.microsoft.com/en-us/cli/azure/ext/resource-graph/?view=azure-cli-latest)
+
+### Data persistency and APIs use (database and IIS Administration API)
 
 * [Neo4j >= 3.4 and supported by neomodel](https://neo4j.com/) (tested using kernel version `3.4.0`):
     * The compatible [APOC plugin](https://github.com/neo4j-contrib/neo4j-apoc-procedures) needs to be installed too (tested using `3.4.0.8`). Note: Some neo4j config is needed to run some queries using APOC. Please add at the end of your `neo4j.conf` file the following lines:
@@ -33,8 +37,8 @@ An utility to retrieve infrastructure and system information from a cloud provid
 ## Setup
 
 * Clone the repository.
-* Install the required modules referenced above (`pip install -r requirements.txt`).
-* Check that a Neo4j instance is running in the default port and has as user `neo4j` and password `ne@4j` and properly configured as stated above.
+* Install the required Python packages referenced above (`pip install -r requirements.txt`).
+* Check that a Neo4j instance is running in the default port and has as user and password (for example( user -> `neo4j` and pass -> `ne@4j`) and properly configured (APOC plugin) as stated above.
 * Config the relevant options in the `config.json` file (you can specify the path to the file using a `.env` file with the env var `CONFIG_FILE_PATH` or adding an `config.json` file add the `system_mapper/` dir). For example a config that uses Azure and IIS Administration API to get the information:
 
 ```json
@@ -90,10 +94,10 @@ Some notes regarding the config file:
     * `database_strings`: Strings to find in the VM information to classify a Virtual Machine as a Database node
     * IIS related config:
         * `port`: Connection port for the IIS management API (the API needs to be enabled in the Virtual Machines)
-        * `app_container_url`: relative url to use to start to get the INFO. For now THE ONLY SUPPORTED ONE.
-        * `app_container_token`: token to use to authenticate the request made to the IIS Administration API.
-        * `app_container_user`: windows user to use to authenticate via NTLM
-        * `app_container_password`: windows user password to authenticate via NTLM
+        * `app_container_url`: relative url to use to start to get the INFO. For now THE ONLY SUPPORTED ONE is `/api/webserver/websites/`.
+        * `app_container_token`: token to use to authenticate the request made to the IIS Administration API or relevant API. See [IIS Administration access tokens]('https://docs.microsoft.com/en-us/IIS-Administration/security/access-tokens')
+        * `app_container_user`: windows user to use to authenticate via NTLM in case of IIS Admin API
+        * `app_container_password`: windows user password to authenticate via NTLM in case of IIS Admin API
     * Visualization dashboard related config:
         * `visualization_port`: Port for the server to launch the dash app.
         * `visualization_n_threads`: Number of threads the server in prod mode will use.
@@ -102,7 +106,7 @@ Some notes regarding the config file:
 
 # Run
 
-From the root directory run:
+From the root directory run and after setting up the environment:
 
 ```python
 python -m system_mapper.main
