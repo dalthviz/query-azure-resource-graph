@@ -857,7 +857,7 @@ class GraphVisualization():
                     ]),
                     dcc.Tab(label='Elements Properties', children=[
                         html.Div(
-                            style=STYLES['tab'], children=[
+                            children=[
                                 html.P('Element Object JSON:'),
                                 dash_treeview_antd.TreeView(
                                     id='hover-element-json-output' + self.name,
