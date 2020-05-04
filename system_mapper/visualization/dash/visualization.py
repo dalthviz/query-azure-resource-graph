@@ -398,6 +398,7 @@ class GraphVisualization():
         self.rules_enable = rules_enable
         self.initial_rules_enable = rules_enable
         self.expand_properties = expand_properties
+        self.initial_expand_properties = expand_properties
         self.element_types = element_types
         self.selected_rule = None
         self.n_clicks = 0
@@ -477,6 +478,7 @@ class GraphVisualization():
             element_type=self.initial_element_type,
             variables=self.initial_variables,
             custom=self.initial_custom_query)
+        self.expand_properties = self.initial_expand_properties
 
     def setup_callbacks(self):
         """Set-up Dash app callbacks."""
@@ -719,7 +721,6 @@ class GraphVisualization():
         # TODO: Fix use of relative paths
         neo4j_data_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), neo4j_data_path)
-        print(neo4j_data_path)
 
         warning_style = (
             self.rules_enable and self.initial_rules_enable
@@ -737,7 +738,6 @@ class GraphVisualization():
                 else:
                     self._format_data(line_data)
         self.expand_properties = True
-        print(len(self.data))
 
     def setup_default_graph(self):
         """General graph with all the nodes available."""
