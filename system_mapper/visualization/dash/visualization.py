@@ -472,13 +472,13 @@ class GraphVisualization():
 
     def _reset_data(self):
         """Reset data re-doing initial query."""
+        self.expand_properties = self.initial_expand_properties
         self.query_data(
             self.initial_query,
             filename=self.filename,
             element_type=self.initial_element_type,
             variables=self.initial_variables,
             custom=self.initial_custom_query)
-        self.expand_properties = self.initial_expand_properties
 
     def setup_callbacks(self):
         """Set-up Dash app callbacks."""
