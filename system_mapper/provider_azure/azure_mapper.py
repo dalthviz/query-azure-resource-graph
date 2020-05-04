@@ -21,7 +21,7 @@ from system_mapper.provider_azure.azhelper import (
 from system_mapper.graph import (
         DeployedApplication, BaseGraphMapper, Database, Disk, NetworkInterface,
         NetworkSecurityGroup, ResourceGroup, Subnet, VirtualNetwork,
-        VirtualMachine, LoadBalancer, PublicIp, PrivateIp)
+        VirtualMachine, LoadBalancer, PublicIp, PrivateIp, Service, Storage)
 
 
 # Suppress SSL warnings
@@ -139,6 +139,22 @@ class AzureGraphMapper(BaseGraphMapper):
                     '"microsoft.resources/subscriptions/resourcegroups"')
                 code, data['resource_groups'] = az_resource_graph(
                     query=rg_query)
+
+                # Get App service instances
+                app_service_query = (
+                    'resources '
+                    '| where type == '
+                    '"microsoft.web/sites"')
+                code, data['app_services'] = az_resource_graph(
+                    query=app_service_query)
+
+                # Get App service instances
+                storage_accounts_query = (
+                    'resources '
+                    '| where type == '
+                    '"microsoft.storage/storageaccounts"')
+                code, data['storage_accounts'] = az_resource_graph(
+                    query=storage_accounts_query)
 
                 # Get Network interfaces
                 ni_query = (
@@ -263,6 +279,65 @@ class AzureGraphMapper(BaseGraphMapper):
             ResourceGroup.nodes.get(
                 name=public_ip_resource_group).elements.connect(
                 p_ip)
+
+        # App Services
+        app_services = data['app_services']
+        for app_service in app_services:
+            service = Service(
+                uid=app_service['id'],
+                name=app_service['name'],
+                service_name='AppService',
+                properties=app_service['properties'],
+                tags=app_service['tags'])
+            service.save()
+
+            # Map properties
+            obj_properties = service.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties,
+                app_service,
+                unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = service.object_tags
+            self.add_tags(obj_tags, app_service['tags'])
+
+            # Connect public ip with resource groups
+            app_resource_group = app_service['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=app_resource_group).elements.connect(
+                service)
+
+        # Storage Account
+        storage_accounts = data['storage_accounts']
+        for storage_account in storage_accounts:
+            storage = Storage(
+                uid=storage_account['id'],
+                name=storage_account['name'],
+                properties=storage_account['properties'],
+                tags=storage_account['tags'])
+            storage.save()
+
+            # Map properties
+            obj_properties = storage.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties,
+                storage_account,
+                unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = storage.object_tags
+            self.add_tags(obj_tags, storage_account['tags'])
+
+            # Connect public ip with resource groups
+            storage_resource_group = storage_account['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=storage_resource_group).elements.connect(
+                storage)
 
         # Load balancers
         load_balancers = data['load_balancers']

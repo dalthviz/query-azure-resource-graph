@@ -275,7 +275,14 @@ class VirtualNetwork(Element):
 class Service(Element):
     """Service concept."""
 
+    service_name = StringProperty()
     elements = Relationship('Element', 'SERVICE_ELEMENTS')
+
+
+class Storage(Element):
+    """File storage element."""
+
+    pass
 
 
 if __name__ == '__main__':

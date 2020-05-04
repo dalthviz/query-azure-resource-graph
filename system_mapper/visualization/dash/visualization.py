@@ -30,7 +30,7 @@ ELEMENT_TYPES = [
     'ResourceGroup', 'VirtualMachine', 'Database', 'Disk', 'NetworkInterface',
     'Subnet', 'VirtualNetwork', 'NetworkSecurityGroup', 'LoadBalancer',
     'PublicIp', 'PrivateIp', 'Property', 'Tag', 'DeployedApplication',
-    'Custom']
+    'Service', 'Storage', 'Custom']
 
 
 RULES = CONFIG['rules']
@@ -265,6 +265,39 @@ DEFAULT_STYLESHEET = [
         }
     },
     {
+        'selector': '.Service',
+        'style': {
+            'height': 80,
+            'width': 80,
+            'background-color': 'gray',
+            'background-fit': 'cover',
+            'background-image': 'https://code.benco.io/icon-collection/'
+            'azure-patterns/cloud-services-blue.svg'
+        }
+    },
+    {
+        'selector': '.Service.AppService',
+        'style': {
+            'height': 80,
+            'width': 80,
+            'background-color': 'gray',
+            'background-fit': 'cover',
+            'background-image': 'https://code.benco.io/icon-collection/'
+            'azure-patterns/app-service-web.svg'
+        }
+    },
+    {
+        'selector': '.Storage',
+        'style': {
+            'height': 80,
+            'width': 80,
+            'background-color': 'gray',
+            'background-fit': 'cover',
+            'background-image': 'https://code.benco.io/icon-collection/'
+            'azure-patterns/storage-files.svg'
+        }
+    },
+    {
         'selector': '.followerEdge',
         "style": {
             "mid-target-arrow-color": "blue",
@@ -436,6 +469,15 @@ class GraphVisualization():
         else:  # leave node, no recursion
             return {'title': data}
 
+    def _reset_data(self):
+        """Reset data re-doing initial query."""
+        self.query_data(
+            self.initial_query,
+            filename=self.filename,
+            element_type=self.initial_element_type,
+            variables=self.initial_variables,
+            custom=self.initial_custom_query)
+
     def setup_callbacks(self):
         """Set-up Dash app callbacks."""
         app = self.app
@@ -486,12 +528,7 @@ class GraphVisualization():
             if n_click_reset > self.n_clicks_reset:
                 elements = self.data = []
                 self.n_clicks_reset += 1
-                self.query_data(
-                    self.initial_query,
-                    filename=self.filename,
-                    element_type=self.initial_element_type,
-                    variables=self.initial_variables,
-                    custom=self.initial_custom_query)
+                self._reset_data()
 
             if n_clicks > self.n_clicks and search:
                 elements = self.data = []
@@ -503,7 +540,7 @@ class GraphVisualization():
                         filename=self.filename,
                         custom=True,
                         variables=variables)
-            print(rule)
+
             if rule and self.selected_rule != rule:
                 elements = self.data = []
                 self.selected_rule = rule
