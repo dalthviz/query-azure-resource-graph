@@ -294,6 +294,7 @@ class GraphVisualization():
                 # This removes any other node and only keeps selected one
                 if focus == 'focus' and selected_element:
                     elements = self.data = [selected_element]
+                    self.seen_nodes = set(selected_element['data']['id'])
                     self.nodes = [selected_element]
 
                 if (expansion_mode in ELEMENT_TYPES and

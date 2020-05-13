@@ -257,6 +257,13 @@ resources
                     '| where type == "microsoft.network/loadbalancers"')
                 code, data['load_balancers'] = az_resource_graph(
                     query=lbs_query)
+                # Get databases
+                dbs_query = (
+                    'resources'
+                    ' | where type == "microsoft.sql/servers/databases"')
+                code, data['databases'] = az_resource_graph(
+                    query=dbs_query)
+
             # data = data.replace('null', 'None')
             logging.info('Data:')
             logging.info(json.dumps(data))
@@ -640,7 +647,35 @@ resources
             virtual_machine.network_interfaces.connect(
                     NetworkInterface.nodes.get(uid=net_interface_id))
 
-        # TODO: Map to actual IIS data
+        # Map databases
+        databases = data['databases']
+        for db in databases:
+            database = Database(
+                    uid=db['id'],
+                    name=db['name'],
+                    properties=db['properties'],
+                    tags=db['tags'])
+            database.save()
+
+            # Map properties
+            obj_properties = database.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties, db, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = database.object_tags
+            self.add_tags(obj_tags, db['tags'])
+
+            # Connect virtual machines with resource groups
+            db_resource_group = db['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=db_resource_group,
+                subscription_id=db['subscriptionId']).elements.connect(
+                    database)
+
+        # Map to IIS data
         applications = data['applications']
         for vm_app_data in applications:
             for app_data in vm_app_data['applications']:
