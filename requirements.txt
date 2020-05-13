@@ -12,3 +12,4 @@ dash-treeview-antd
 xmltodict
 python-dotenv
 waitress
+pyinstaller

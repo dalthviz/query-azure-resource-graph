@@ -12,6 +12,7 @@ import json
 import system_mapper.visualization.dash.reusable_components as drc
 from system_mapper.config import CONFIG
 
+
 # Third-party imports
 import dash
 from dash.dependencies import Input, Output, State
@@ -26,11 +27,7 @@ from neobolt.exceptions import CypherError
 config.DATABASE_URL = CONFIG['neo4j_database_url']
 
 
-ELEMENT_TYPES = [
-    'ResourceGroup', 'VirtualMachine', 'Database', 'Disk', 'NetworkInterface',
-    'Subnet', 'VirtualNetwork', 'NetworkSecurityGroup', 'LoadBalancer',
-    'PublicIp', 'PrivateIp', 'Property', 'Tag', 'DeployedApplication',
-    'Service', 'Storage', 'Custom']
+ELEMENT_TYPES = CONFIG['element_types']
 
 
 RULES = CONFIG['rules']
@@ -51,7 +48,6 @@ YIELD data
 RETURN data
 """
 
-
 ELEMENT_QUERY = """
 CALL apoc.export.json.query(
 "MATCH (nod:{element_type}) RETURN nod",
@@ -62,293 +58,7 @@ CUSTOM_QUERY = """CALL apoc.export.json.query(
 "{custom_query}",
 "{save_path}", null)"""
 
-
-DEFAULT_STYLESHEET = [
-    {
-        "selector": '.warning',
-        'style': {
-            'z-index': 9999,
-            'content': 'data(label)',
-            'color': '#ff9966',
-            'line-color': '#ff9966',
-            "border-width": 3,
-            'background-color': '#ff9966',
-            "border-color": "#ff9966",
-        }
-    },
-    {
-        "selector": 'node',
-        'style': {
-            "opacity": 0.65,
-            'z-index': 9999,
-            'content': 'data(label)'
-        }
-    },
-    {
-        "selector": 'edge',
-        'style': {
-            "curve-style": "unbundled-bezier",
-            "opacity": 0.45,
-            'z-index': 5000,
-            'content': 'data(label)'
-        }
-    },
-    {
-        "selector": '.OBJ_PROPERTY',
-        'style': {
-            "curve-style": "unbundled-bezier",
-            "line-style": "dashed",
-            "opacity": 0.45,
-            'z-index': 5000,
-            'content': 'data(label)'
-        }
-    },
-    {
-        "selector": '.OBJ_TAG',
-        'style': {
-            "curve-style": "unbundled-bezier",
-            "line-style": "dashed",
-            "opacity": 0.45,
-            'z-index': 5000,
-            'content': 'data(label)'
-        }
-    },
-    {
-        "selector": '.ELEMENT_RESOURCE_GROUP',
-        'style': {
-            "curve-style": "unbundled-bezier",
-            "line-style": "dashed",
-            "opacity": 0.45,
-            'z-index': 5000,
-            'content': 'data(label)'
-        }
-    },
-    {
-        'selector': '.ResourceGroup',
-        'style': {
-            'height': 100,
-            'width': 100,
-            'background-fit': 'cover',
-            'background-color': 'grey',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/azure-resource-group-blue.svg'
-        }
-    },
-    {
-        'selector': '.Property',
-        'style': {
-            'height': 50,
-            'width': 50,
-            'background-fit': 'cover',
-            'background-color': 'grey'
-        }
-    },
-    {
-        'selector': '.Tag',
-        'style': {
-            'height': 50,
-            'width': 50,
-            'background-fit': 'cover',
-            'background-color': 'blue',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/price-tag.svg'
-        }
-    },
-    {
-        'selector': '.VirtualMachine',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/prebuilt-machine.svg',
-            'background-color': '#0074D9',
-        }
-    },
-    {
-        'selector': '.VirtualMachine.Database',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/database01.svg',
-            'background-color': '#77a8d4',
-        }
-    },
-    {
-        'selector': '.Disk',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'yellow',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/disks.svg'
-        }
-    },
-    {
-        'selector': '.VirtualNetwork',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'green',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/connect.svg'
-        }
-    },
-    {
-        'selector': '.NetworkSecurityGroup',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'black',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/security-alt.svg'
-        }
-    },
-    {
-        'selector': '.Subnet',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'red',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/networking.svg'
-        }
-    },
-    {
-        'selector': '.NetworkInterface',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'black',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/connect.svg'
-        }
-    },
-    {
-        'selector': '.DeployedApplication',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/devops-deploy-cloud.svg'
-        }
-    },
-    {
-        'selector': '.LoadBalancer',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/app-service-logic.svg'
-        }
-    },
-    {
-        'selector': '.PublicIp',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/advanced-functionality.svg'
-        }
-    },
-    {
-        'selector': '.Service',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/cloud-services-blue.svg'
-        }
-    },
-    {
-        'selector': '.Service.AppService',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/app-service-web.svg'
-        }
-    },
-    {
-        'selector': '.Storage',
-        'style': {
-            'height': 80,
-            'width': 80,
-            'background-color': 'gray',
-            'background-fit': 'cover',
-            'background-image': 'https://code.benco.io/icon-collection/'
-            'azure-patterns/storage-files.svg'
-        }
-    },
-    {
-        'selector': '.followerEdge',
-        "style": {
-            "mid-target-arrow-color": "blue",
-            "mid-target-arrow-shape": "vee",
-            "line-color": "#0074D9"
-        }
-    },
-    {
-        'selector': '.followingNode',
-        'style': {
-            'background-color': '#FF4136'
-        }
-    },
-    {
-        'selector': '.followingEdge',
-        "style": {
-            "mid-target-arrow-color": "red",
-            "mid-target-arrow-shape": "vee",
-            "line-color": "#FF4136",
-        }
-    },
-    {
-        "selector": '.genesis',
-        "style": {
-            'background-color': '#B10DC9',
-            "border-width": 2,
-            "border-color": "purple",
-            "border-opacity": 1,
-            "opacity": 1,
-
-            "label": "data(label)",
-            "color": "#B10DC9",
-            "text-opacity": 1,
-            "font-size": 12,
-            'z-index': 9999
-        }
-    },
-    {
-        'selector': ':selected',
-        "style": {
-            "border-width": 2,
-            "border-color": "black",
-            "border-opacity": 1,
-            "opacity": 1,
-            "label": "data(label)",
-            "color": "black",
-            "font-size": 12,
-            'z-index': 9999
-        }
-    }
-]
+DEFAULT_STYLESHEET = CONFIG['style_sheet']
 
 STYLES = {
     'json-output': {
@@ -391,6 +101,7 @@ class GraphVisualization():
         self.app = APP
         self.name = name
         self.nodes = []
+        self.seen_nodes = set()
         self.relations = []
         self.data = []
         self.filename = name + initial_filename
@@ -473,6 +184,9 @@ class GraphVisualization():
     def _reset_data(self):
         """Reset data re-doing initial query."""
         self.expand_properties = self.initial_expand_properties
+        self.seen_nodes = set()
+        self.nodes = []
+        self.edges = []
         self.query_data(
             self.initial_query,
             filename=self.filename,
@@ -523,7 +237,7 @@ class GraphVisualization():
         def _generate_elements(
                 nodeData=None, n_clicks=None, n_click_reset=None, search=None,
                 rule=None, expansion_mode=None, custom_query=None,
-                custom_query_var=None):
+                custom_query_var=None, focus=None):
             """Update items displayed in graph following an expansion type."""
             elements = self.data
 
@@ -531,9 +245,11 @@ class GraphVisualization():
                 elements = self.data = []
                 self.n_clicks_reset += 1
                 self._reset_data()
+                return (
+                    elements, '{number} nodes'.format(number=len(self.nodes)))
 
             if n_clicks > self.n_clicks and search:
-                elements = self.data = []
+                elements = self.data = self.nodes = self.edges = []
                 self.n_clicks += 1
                 variables = search.split('RETURN')[-1].strip()
                 variables = [var.strip() for var in variables.split(',')]
@@ -546,15 +262,20 @@ class GraphVisualization():
             if rule and self.selected_rule != rule:
                 elements = self.data = []
                 self.selected_rule = rule
+                self.nodes = []
+                self.edges = []
+                self.seen_nodes = set()
                 self.query_data(
                         RULES_MAPPING[rule][0],
                         filename=self.filename,
                         custom=True,
                         variables=RULES_MAPPING[rule][1].split(','))
-                return elements
+                return (
+                    elements, '{number} nodes'.format(number=len(self.nodes)))
 
             if not nodeData:
-                return elements
+                return (
+                    elements, '{number} nodes'.format(number=len(self.nodes)))
 
             if self.expand_enable:
                 # TODO: If the node has already been expanded, we don't expand
@@ -564,10 +285,16 @@ class GraphVisualization():
 
                 # This retrieves the currently selected element,
                 # and tag it as expanded
+                selected_element = None
                 for element in elements:
                     if nodeData['id'] == element.get('data').get('id'):
                         element['data']['expanded'] = True
+                        selected_element = element
                         break
+                # This removes any other node and only keeps selected one
+                if focus == 'focus' and selected_element:
+                    elements = self.data = [selected_element]
+                    self.nodes = [selected_element]
 
                 if (expansion_mode in ELEMENT_TYPES and
                         expansion_mode != 'Custom'):
@@ -591,11 +318,13 @@ class GraphVisualization():
                         variables=[var.strip()
                                    for var in custom_query_var.split(',')])
 
-            return elements
+            return (
+                elements, '{number} nodes'.format(number=len(self.nodes)))
 
         if self.rules_enable:
             @app.callback(
-                Output('cytoscape' + self.name, 'elements'),
+                [Output('cytoscape' + self.name, 'elements'),
+                 Output('node-number' + self.name, 'children')],
                 [Input('cytoscape' + self.name, 'tapNodeData'),
                  Input('search-submit' + self.name, 'n_clicks'),
                  Input('reset-submit' + self.name, 'n_clicks'),
@@ -603,36 +332,40 @@ class GraphVisualization():
                 [State('search' + self.name, 'value'),
                  State('dropdown-expand' + self.name, 'value'),
                  State('custom-query' + self.name, 'value'),
-                 State('custom-query-variables' + self.name, 'value')])
+                 State('custom-query-variables' + self.name, 'value'),
+                 State('selection-options' + self.name, 'value')])
             def generate_elements_with_rules(
                     nodeData=None, n_clicks=None, n_click_reset=None,
                     rule=None, search=None, expansion_mode=None,
-                    custom_query=None, custom_query_var=None):
+                    custom_query=None, custom_query_var=None, focus=None):
                 return _generate_elements(
                     nodeData=nodeData, n_clicks=n_clicks,
                     n_click_reset=n_click_reset, search=search, rule=rule,
                     expansion_mode=expansion_mode, custom_query=custom_query,
-                    custom_query_var=custom_query_var)
+                    custom_query_var=custom_query_var, focus=focus)
         else:
             @app.callback(
-                Output('cytoscape' + self.name, 'elements'),
+                [Output('cytoscape' + self.name, 'elements'),
+                 Output('node-number' + self.name, 'children')],
                 [Input('cytoscape' + self.name, 'tapNodeData'),
                  Input('search-submit' + self.name, 'n_clicks'),
                  Input('reset-submit' + self.name, 'n_clicks')],
                 [State('search' + self.name, 'value'),
                  State('dropdown-expand' + self.name, 'value'),
                  State('custom-query' + self.name, 'value'),
-                 State('custom-query-variables' + self.name, 'value')])
+                 State('custom-query-variables' + self.name, 'value'),
+                 State('selection-options' + self.name, 'value')])
             def generate_elements(
                     nodeData=None, n_clicks=None, n_click_reset=None,
                     search=None, expansion_mode=None, custom_query=None,
-                    custom_query_var=None):
+                    custom_query_var=None, focus=None):
                 return _generate_elements(
                     nodeData=nodeData, n_clicks=n_clicks,
                     n_click_reset=n_click_reset,
                     rule=None, search=search, expansion_mode=expansion_mode,
                     custom_query=custom_query,
-                    custom_query_var=custom_query_var)
+                    custom_query_var=custom_query_var,
+                    focus=focus)
 
     def query_data(
             self, query, filename='data.json', element_type=None,
@@ -671,6 +404,9 @@ class GraphVisualization():
             line_data = {'data': line_data}
             line_data['classes'] = ' '.join(
                 line_data['data']['labels'])
+            if 'service_name' in line_data['data']:
+                print(line_data['data']['service_name'])
+                line_data['classes'] += ' ' + line_data['data']['service_name']
             if ('Property' in line_data['data']['labels']
                     and not self.expand_properties):
                 return
@@ -682,7 +418,8 @@ class GraphVisualization():
             if 'name' in line_data['data']['properties']:
                 line_data['data']['label'] = (
                     line_data['data']['properties']['name'])
-            if line_data not in self.nodes:
+            if line_data['data']['id'] not in self.seen_nodes:
+                self.seen_nodes.add(line_data['data']['id'])
                 self.nodes.append(line_data)
         else:
             if (('OBJ_PROPERTY' in line_data['label']
@@ -843,8 +580,19 @@ class GraphVisualization():
                                     value='',
                                     placeholder='n, r, m')]
                             ) if self.expand_enable else '',
+                        drc.NamedRadioItems(
+                            name='Selection options',
+                            id='selection-options' + self.name,
+                            options=[
+                                {'label': 'Only keep selection',
+                                 'value': 'focus'},
+                                {'label': 'Keep all the nodes',
+                                 'value': 'no_focus'}
+                                ],
+                            value='focus'
+                            ),
                         html.Div(
-                            id='search-box' + self.name,
+                            id='reset-box' + self.name,
                             children=[
                                 html.Button(
                                     children='Reset',
@@ -853,6 +601,9 @@ class GraphVisualization():
                                     n_clicks=0),
                                 ],
                             style=STYLES['reset'],
+                            ),
+                        html.Div(
+                            id='node-number' + self.name
                             ),
                     ]),
                     dcc.Tab(label='Elements Properties', children=[

@@ -6,5 +6,5 @@ save_non_project_files = False
 
 [main]
 version = 0.2.0
-recent_files = ['system_mapper\\config.json', 'README.md', 'system_mapper\\main.py', 'system_mapper\\visualization\\dash\\visualization.py', 'system_mapper\\provider_azure\\azure_mapper.py', 'system_mapper\\graph.py']
+recent_files = ['system_mapper\\config.json', 'system_mapper\\main.py', 'system_mapper\\visualization\\dash\\visualization.py', 'system_mapper\\provider_azure\\azure_mapper.py', 'system_mapper\\provider_azure\\azhelper.py', 'system_mapper\\graph.py', 'system_mapper\\visualization\\dash\\index.py', 'requirements.txt', '.gitignore']
 

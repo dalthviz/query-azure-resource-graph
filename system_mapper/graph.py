@@ -136,9 +136,11 @@ class ResourceGroup(StructuredNode):
     """RG that groups elements on an AV."""
 
     name = StringProperty()
+    subscription_id = StringProperty(unique_index=True)
     properties = JSONProperty()
     elements = Relationship('Element', 'ELEMENT_RESOURCE_GROUP')
     object_tags = Relationship('Tag', 'OBJ_TAG')
+    object_properties = Relationship('Property', 'OBJ_PROPERTY')
 
 
 class Property(StructuredNode):
@@ -234,6 +236,8 @@ class NetworkSecurityGroup(Element):
 
     inbound_rules = Relationship('InboundRule', 'INBOUND_RULE')
     outbound_rules = Relationship('OutboundRule', 'OUTBOUND_RULE')
+    network_interfaces = Relationship(
+        'NetworkInterface', 'NETWORK_SECURITY_GROUP')
 
 
 class NetworkInterface(Element):
@@ -241,8 +245,6 @@ class NetworkInterface(Element):
 
     public_ip = Relationship('PublicIp', 'PUBLIC_IP')
     private_ip = Relationship('PrivateIp', 'PRIVATE_IP')
-    network_security_group = Relationship(
-        'NetworkSecurityGroup', 'NETWORK_SECURITY_GROUP')
     subnet = Relationship('Subnet', 'SUBNET_NI')
 
 

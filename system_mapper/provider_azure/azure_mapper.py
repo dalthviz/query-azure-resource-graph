@@ -132,6 +132,9 @@ class AzureGraphMapper(BaseGraphMapper):
             logging.info(code)
             logging.info(login)
             if code == SUCCESS_CODE:
+                # Refresh accounts lists
+                logging.info(az_cli(["account", "list", "--refresh"]))
+
                 # Get resource groups
                 rg_query = (
                     'resourcecontainers '
@@ -143,12 +146,18 @@ class AzureGraphMapper(BaseGraphMapper):
                 # Get App service instances
                 app_service_query = (
                     'resources '
-                    '| where type == '
-                    '"microsoft.web/sites"')
+                    '| where type == "microsoft.web/sites"')
                 code, data['app_services'] = az_resource_graph(
                     query=app_service_query)
 
-                # Get App service instances
+                # Get server farms
+                app_services_plans_query = (
+                    'resources '
+                    '| where type == "microsoft.web/serverfarms"')
+                code, data['app_services_plans'] = az_resource_graph(
+                    query=app_services_plans_query)
+
+                # Get Storage accounts
                 storage_accounts_query = (
                     'resources '
                     '| where type == '
@@ -171,18 +180,51 @@ class AzureGraphMapper(BaseGraphMapper):
                     query=public_ips_query)
 
                 # Get VMs
-                vm_query = (
-                    'resources '
-                    '| where type == "microsoft.compute/virtualmachines"')
-                code, data['virtual_machines'] = az_resource_graph(
+                vm_query = ("""
+resources
+ | where type =~ 'microsoft.compute/virtualmachines'
+ | extend nics=array_length(properties.networkProfile.networkInterfaces)
+ | mv-expand nic=properties.networkProfile.networkInterfaces
+ | where nics == 1 or nic.properties.primary =~ 'true' or isempty(nic)
+ | project id, name, size=tostring(properties.hardwareProfile.vmSize),
+ nicId = tostring(nic.id), type, properties = tostring(properties),
+ resourceGroup = resourceGroup, tostring(tags), subscriptionId, tenantId
+ | join kind=leftouter (
+    Resources
+    | where type =~ 'microsoft.network/networkinterfaces'
+     | extend ipConfigsCount=array_length(properties.ipConfigurations)
+     | mv-expand ipconfig=properties.ipConfigurations
+     | where ipConfigsCount == 1 or ipconfig.properties.primary =~ 'true'
+    | project nicId = id,
+     publicIpId = tostring(ipconfig.properties.publicIPAddress.id),
+     privateIpAddress = tostring(ipconfig.properties.privateIPAddress))
+ on nicId
+ | project-away nicId1
+ | summarize by id, name, size, nicId, type, properties, resourceGroup, tags,
+ subscriptionId, tenantId, publicIpId, privateIpAddress
+ | join kind=leftouter (
+    Resources
+    | where type =~ 'microsoft.network/publicipaddresses'
+    | project publicIpId = id, publicIpAddress = properties.ipAddress)
+ on publicIpId
+ | project-away publicIpId1
+""")
+                code, data['raw_virtual_machines'] = az_resource_graph(
                     query=vm_query)
 
-                # TODO: Get application data:
+                # Get application data and parse properties:
                 data['applications'] = []
-                for vm in data['virtual_machines']:
-                    if not self.is_db_virtual_machine(vm):
-                        # TODO: Get application data using public ip
-                        vm_ip = 'localhost'
+                data['virtual_machines'] = []
+                for vm in data['raw_virtual_machines']:
+                    vm['properties'] = json.loads(vm['properties'])
+                    data['virtual_machines'].append(vm)
+                    if (not self.is_db_virtual_machine(vm) and
+                            self.config['get_app_container_info']):
+                        # Get application data using public ip
+                        vm_ip = (
+                            vm['publicIpAddress']
+                            if 'publicIpAddress' in vm and vm['publicIpAddress']
+                            else vm['privateIpAddress'])
                         app_data = {}
                         app_data['virtual_machine_id'] = vm['id']
                         app_data['applications'] = self.get_app_data(vm_ip)
@@ -215,13 +257,14 @@ class AzureGraphMapper(BaseGraphMapper):
                     '| where type == "microsoft.network/loadbalancers"')
                 code, data['load_balancers'] = az_resource_graph(
                     query=lbs_query)
-            data = data.replace('null', 'None')
+            # data = data.replace('null', 'None')
             logging.info('Data:')
             logging.info(json.dumps(data))
             return data
-        except Exception:
+        except Exception as e:
             logging.error("Execution error", exc_info=True)
-            return data
+            raise e
+            # return data
 
     def is_db_virtual_machine(self, data):
         """
@@ -247,8 +290,17 @@ class AzureGraphMapper(BaseGraphMapper):
         for rg in resource_groups:
             # TODO: location, zones
             resource_group = ResourceGroup(
+                uid=rg['id'],
+                subscription_id=rg['subscriptionId'],
                 name=rg['resourceGroup'], properties=rg['properties'])
             resource_group.save()
+
+            # Map properties
+            obj_properties = resource_group.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties, rg, unwanted_properties=unwanted_props)
 
             # Map tags
             obj_tags = resource_group.object_tags
@@ -277,8 +329,41 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect public ip with resource groups
             public_ip_resource_group = pip['resourceGroup']
             ResourceGroup.nodes.get(
-                name=public_ip_resource_group).elements.connect(
+                name=public_ip_resource_group,
+                subscription_id=pip['subscriptionId']).elements.connect(
                 p_ip)
+
+        # App Services Plan
+        app_services_plans = data['app_services_plans']
+        for app_service_plan in app_services_plans:
+            service_plan = Service(
+                uid=app_service_plan['id'].lower(),
+                name=app_service_plan['name'],
+                service_name='AppServicePlan',
+                properties=app_service_plan['properties'],
+                tags=app_service_plan['tags'])
+            service_plan.save()
+
+            # Map properties
+            obj_properties = service_plan.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties,
+                app_service_plan,
+                unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = service_plan.object_tags
+            self.add_tags(obj_tags, app_service_plan['tags'])
+
+            # Connect public ip with resource groups
+            app_resource_group = app_service_plan['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=app_resource_group,
+                subscription_id=app_service_plan['subscriptionId']
+                ).elements.connect(
+                    service_plan)
 
         # App Services
         app_services = data['app_services']
@@ -307,8 +392,14 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect public ip with resource groups
             app_resource_group = app_service['resourceGroup']
             ResourceGroup.nodes.get(
-                name=app_resource_group).elements.connect(
-                service)
+                name=app_resource_group,
+                subscription_id=app_service['subscriptionId']
+                ).elements.connect(service)
+
+            # Connect to server farm (AppServicePlan)
+            app_service_plan_id = app_service['properties']['serverFarmId']
+            Service.nodes.get(
+                uid=app_service_plan_id.lower()).elements.connect(service)
 
         # Storage Account
         storage_accounts = data['storage_accounts']
@@ -336,8 +427,10 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect public ip with resource groups
             storage_resource_group = storage_account['resourceGroup']
             ResourceGroup.nodes.get(
-                name=storage_resource_group).elements.connect(
-                storage)
+                name=storage_resource_group,
+                subscription_id=storage_account['subscriptionId']
+                ).elements.connect(
+                    storage)
 
         # Load balancers
         load_balancers = data['load_balancers']
@@ -364,8 +457,9 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect load balancer with resource groups
             lb_resource_group = lb['resourceGroup']
             ResourceGroup.nodes.get(
-                name=lb_resource_group).elements.connect(
-                lbalancer)
+                name=lb_resource_group,
+                subscription_id=lb['subscriptionId']).elements.connect(
+                    lbalancer)
 
             # Map public Ip address
             lb_public_id = lb['properties']['frontendIPConfigurations'][0][
@@ -395,8 +489,9 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect ni with resource groups
             vn_resource_group = vn['resourceGroup']
             ResourceGroup.nodes.get(
-                name=vn_resource_group).elements.connect(
-                virtual_network)
+                name=vn_resource_group,
+                subscription_id=vn['subscriptionId']).elements.connect(
+                    virtual_network)
 
             # Subnets
             vn_subnets = vn['properties']['subnets']
@@ -406,33 +501,6 @@ class AzureGraphMapper(BaseGraphMapper):
                     uid=sn['id'], name=sn['name'], properties=sn['properties'])
                 subnet.save()
                 virtual_network.subnets.connect(subnet)
-
-        # Network Security Group
-        ns_groups = data['network_security_groups']
-        for nsg in ns_groups:
-            ns_group = NetworkSecurityGroup(
-                uid=nsg['id'], name=nsg['name'],
-                properties=nsg['properties'],
-                tags=nsg['tags'])
-            ns_group.save()
-
-            # Map properties
-            obj_properties = ns_group.object_properties
-            unwanted_props = [
-                'properties', 'resourceGroup', 'tags', 'managedBy', 'id',
-                'name']
-            self.add_properties(
-                obj_properties, nsg, unwanted_properties=unwanted_props)
-
-            # Map tags
-            obj_tags = ns_group.object_tags
-            self.add_tags(obj_tags, nsg['tags'])
-
-            # Connect network security group with resource groups
-            d_resource_group = nsg['resourceGroup']
-            ResourceGroup.nodes.get(
-                name=d_resource_group).elements.connect(
-                ns_group)
 
         # Network Interfaces
         network_interfaces = data['network_interfaces']
@@ -456,15 +524,9 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect ni with resource groups
             ni_resource_group = ni['resourceGroup']
             ResourceGroup.nodes.get(
-                name=ni_resource_group).elements.connect(
-                network_interface)
-
-            # Connect with network security group
-            if 'networkSecurityGroup' in ni['properties']:
-                nsg = ni['properties']['networkSecurityGroup']['id']
-                network_interface.network_security_group.connect(
-                    NetworkSecurityGroup.nodes.get(
-                        uid=nsg))
+                name=ni_resource_group,
+                subscription_id=ni['subscriptionId']).elements.connect(
+                    network_interface)
 
             ip_configs = ni['properties']['ipConfigurations']
             for ipc in ip_configs:
@@ -490,9 +552,50 @@ class AzureGraphMapper(BaseGraphMapper):
                 if 'loadBalancerBackendAddressPools' in ipc['properties']:
                     backend_pool_id = ipc['properties'][
                         'loadBalancerBackendAddressPools'][0]['id']
-                    LoadBalancer.nodes.get(
-                        backend_pool_id=backend_pool_id
-                        ).network_interfaces.connect(network_interface)
+                    try:
+                        LoadBalancer.nodes.get(
+                            backend_pool_id=backend_pool_id
+                            ).network_interfaces.connect(network_interface)
+                    except DoesNotExist as e:
+                        logging.info(
+                            "Error connecting Load balancer "
+                            "to netwoerk interface")
+                        logging.info(e)
+
+        # Network Security Group
+        ns_groups = data['network_security_groups']
+        for nsg in ns_groups:
+            ns_group = NetworkSecurityGroup(
+                uid=nsg['id'], name=nsg['name'],
+                properties=nsg['properties'],
+                tags=nsg['tags'])
+            ns_group.save()
+
+            # Map properties
+            obj_properties = ns_group.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'managedBy', 'id',
+                'name']
+            self.add_properties(
+                obj_properties, nsg, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = ns_group.object_tags
+            self.add_tags(obj_tags, nsg['tags'])
+
+            # Connect network security group with resource groups
+            d_resource_group = nsg['resourceGroup']
+            ResourceGroup.nodes.get(
+                name=d_resource_group,
+                subscription_id=nsg['subscriptionId']).elements.connect(
+                    ns_group)
+
+            # Connect NSG with interfaces
+            if 'networkInterfaces' in nsg['properties']:
+                for ni in nsg['properties']['networkInterfaces']:
+                    ni_id = ni['id']
+                    ns_group.network_interfaces.connect(
+                        NetworkInterface.nodes.get(uid=ni_id))
 
         # Virtual Machines
         virtual_machines = data['virtual_machines']
@@ -526,8 +629,9 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect virtual machines with resource groups
             vm_resource_group = vm['resourceGroup']
             ResourceGroup.nodes.get(
-                name=vm_resource_group).elements.connect(
-                virtual_machine)
+                name=vm_resource_group,
+                subscription_id=vm['subscriptionId']).elements.connect(
+                    virtual_machine)
 
             # Connect vm with net_interfaces
             nis = vm['properties']['networkProfile']['networkInterfaces']
@@ -540,7 +644,6 @@ class AzureGraphMapper(BaseGraphMapper):
         applications = data['applications']
         for vm_app_data in applications:
             for app_data in vm_app_data['applications']:
-                print(app_data)
                 application = DeployedApplication(
                     uid=app_data['id'],
                     name=app_data['name'],
@@ -581,7 +684,8 @@ class AzureGraphMapper(BaseGraphMapper):
             # Connect disk with resource groups
             d_resource_group = d['resourceGroup']
             ResourceGroup.nodes.get(
-                name=d_resource_group).elements.connect(
+                name=d_resource_group,
+                subscription_id=d['subscriptionId']).elements.connect(
                 disk)
             try:
                 # Connect disk with vm
@@ -610,4 +714,3 @@ def run_mapper(reset=True):
     """Run mapper script to add populate database."""
     az_mapper = AzureGraphMapper()
     az_mapper.map_data(reset=reset)
-    logging.info(az_cli(['account', 'list']))
