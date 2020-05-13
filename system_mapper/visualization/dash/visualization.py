@@ -638,6 +638,12 @@ FULL_MAP_VISUALIZATION = GraphVisualization(
     ALL_QUERY,
     "FULL",
     element_types=['Property', 'Tag', 'Custom'])
+SUBSCRIPTION_QUERY_VISUALIZATION = GraphVisualization(
+    ELEMENT_QUERY, "SUBSCRIPTION_QUERY",
+    initial_element_type='Owner',
+    initial_variables=['nod'],
+    expand_enable=True,
+    expand_properties=True)
 RESOURCE_QUERY_VISUALIZATION = GraphVisualization(
     ELEMENT_QUERY, "RESOURCE_QUERY",
     initial_element_type='ResourceGroup',

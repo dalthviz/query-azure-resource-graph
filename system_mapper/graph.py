@@ -107,10 +107,13 @@ class BaseGraphMapper():
 class Owner(StructuredNode):
     """Owner of an element."""
 
-    value = StringProperty()
+    uid = StringProperty(unique_index=True)
     regions = Relationship('Region', 'REGION')
     elements = Relationship('Element', 'OWNED_ELEMENT')
     properties = JSONProperty()
+    object_tags = Relationship('Tag', 'OBJ_TAG')
+    object_properties = Relationship('Property', 'OBJ_PROPERTY')
+    resource_groups = Relationship('ResourceGroup', 'OWNED_RESOURCE_GROUP')
 
 
 class Region(StructuredNode):

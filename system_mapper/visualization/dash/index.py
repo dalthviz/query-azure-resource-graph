@@ -10,8 +10,9 @@ from dash.dependencies import Input, Output
 
 # Local imports
 from system_mapper.visualization.dash.visualization import (
-    APP, FULL_MAP_VISUALIZATION, RESOURCE_QUERY_VISUALIZATION,
-    VM_QUERY_VISUALIZATION, RULES_QUERY_VISUALIZATION)
+    APP, FULL_MAP_VISUALIZATION, SUBSCRIPTION_QUERY_VISUALIZATION,
+    RESOURCE_QUERY_VISUALIZATION, VM_QUERY_VISUALIZATION,
+    RULES_QUERY_VISUALIZATION)
 
 APP.layout = html.Div([
     dcc.Location(id='url', refresh=False),
@@ -40,6 +41,17 @@ def display_page(pathname):
                     className='six columns center',
                     children=[
                         html.Img(
+                            src='assets/images/subscription.svg',
+                            width='50%'),
+                        html.Br(),
+                        dcc.Link(
+                            'Navigate starting in a subscription',
+                            href='/apps/owner_query_map'),
+                        ]),
+                html.Div(
+                    className='six columns center',
+                    children=[
+                        html.Img(
                             src='assets/images/resource_group.svg',
                             width='50%'),
                         html.Br(),
@@ -58,8 +70,9 @@ def display_page(pathname):
                             'Navigate starting in a Virtual Machine',
                             href='/apps/vm_query_map')
                         ]),
+                html.Br(),
                 html.Div(
-                    className='six columns center',
+                    className='twelve columns center',
                     children=[
                         html.Img(
                             src='assets/images/filter.PNG',
@@ -72,6 +85,8 @@ def display_page(pathname):
                     ])
     if pathname == '/apps/full_map':
         return FULL_MAP_VISUALIZATION.setup_default_graph()
+    elif pathname == '/apps/owner_query_map':
+        return SUBSCRIPTION_QUERY_VISUALIZATION.setup_default_graph()
     elif pathname == '/apps/resource_query_map':
         return RESOURCE_QUERY_VISUALIZATION.setup_default_graph()
     elif pathname == '/apps/vm_query_map':

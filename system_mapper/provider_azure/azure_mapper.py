@@ -21,7 +21,8 @@ from system_mapper.provider_azure.azhelper import (
 from system_mapper.graph import (
         DeployedApplication, BaseGraphMapper, Database, Disk, NetworkInterface,
         NetworkSecurityGroup, ResourceGroup, Subnet, VirtualNetwork,
-        VirtualMachine, LoadBalancer, PublicIp, PrivateIp, Service, Storage)
+        VirtualMachine, LoadBalancer, PublicIp, PrivateIp, Service, Storage,
+        Owner)
 
 
 # Suppress SSL warnings
@@ -134,6 +135,14 @@ class AzureGraphMapper(BaseGraphMapper):
             if code == SUCCESS_CODE:
                 # Refresh accounts lists
                 logging.info(az_cli(["account", "list", "--refresh"]))
+
+                # Get subscriptions
+                s_query = (
+                    'resourcecontainers '
+                    '| where type == '
+                    '"microsoft.resources/subscriptions"')
+                code, data['subscriptions'] = az_resource_graph(
+                    query=s_query)
 
                 # Get resource groups
                 rg_query = (
@@ -292,6 +301,25 @@ resources
             self.clear_database()
         data = self.get_data()
 
+        # Subscriptions
+        subscriptions = data['subscriptions']
+        for s in subscriptions:
+            subscription = Owner(
+                uid=s['id'].replace('/subscriptions/', ''),
+                name=s['name'], properties=s['properties'])
+            subscription.save()
+
+            # Map properties
+            obj_properties = subscription.object_properties
+            unwanted_props = [
+                'properties', 'resourceGroup', 'tags', 'id', 'name']
+            self.add_properties(
+                obj_properties, s, unwanted_properties=unwanted_props)
+
+            # Map tags
+            obj_tags = subscription.object_tags
+            self.add_tags(obj_tags, s['tags'])
+
         # Resource group
         resource_groups = data['resource_groups']
         for rg in resource_groups:
@@ -312,6 +340,11 @@ resources
             # Map tags
             obj_tags = resource_group.object_tags
             self.add_tags(obj_tags, rg['tags'])
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=rg['subscriptionId']).resource_groups.connect(
+                    resource_group)
 
         # Public IP
         public_ips = data['public_ips']
@@ -339,6 +372,10 @@ resources
                 name=public_ip_resource_group,
                 subscription_id=pip['subscriptionId']).elements.connect(
                 p_ip)
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=pip['subscriptionId']).elements.connect(p_ip)
 
         # App Services Plan
         app_services_plans = data['app_services_plans']
@@ -370,6 +407,11 @@ resources
                 name=app_resource_group,
                 subscription_id=app_service_plan['subscriptionId']
                 ).elements.connect(
+                    service_plan)
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=app_service_plan['subscriptionId']).elements.connect(
                     service_plan)
 
         # App Services
@@ -408,6 +450,10 @@ resources
             Service.nodes.get(
                 uid=app_service_plan_id.lower()).elements.connect(service)
 
+            # Map subscription
+            Owner.nodes.get(
+                uid=app_service['subscriptionId']).elements.connect(service)
+
         # Storage Account
         storage_accounts = data['storage_accounts']
         for storage_account in storage_accounts:
@@ -437,6 +483,11 @@ resources
                 name=storage_resource_group,
                 subscription_id=storage_account['subscriptionId']
                 ).elements.connect(
+                    storage)
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=storage_account['subscriptionId']).elements.connect(
                     storage)
 
         # Load balancers
@@ -472,6 +523,10 @@ resources
             lb_public_id = lb['properties']['frontendIPConfigurations'][0][
                 'properties']['publicIPAddress']['id']
             lbalancer.public_ip.connect(PublicIp.nodes.get(uid=lb_public_id))
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=lb['subscriptionId']).elements.connect(lbalancer)
 
         # Virtual Networks
         virtual_networks = data['virtual_networks']
@@ -509,6 +564,10 @@ resources
                 subnet.save()
                 virtual_network.subnets.connect(subnet)
 
+            # Map subscription
+            Owner.nodes.get(
+                uid=vn['subscriptionId']).elements.connect(virtual_network)
+
         # Network Interfaces
         network_interfaces = data['network_interfaces']
         for ni in network_interfaces:
@@ -534,6 +593,10 @@ resources
                 name=ni_resource_group,
                 subscription_id=ni['subscriptionId']).elements.connect(
                     network_interface)
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=ni['subscriptionId']).elements.connect(network_interface)
 
             ip_configs = ni['properties']['ipConfigurations']
             for ipc in ip_configs:
@@ -597,6 +660,10 @@ resources
                 subscription_id=nsg['subscriptionId']).elements.connect(
                     ns_group)
 
+            # Map subscription
+            Owner.nodes.get(
+                uid=nsg['subscriptionId']).elements.connect(ns_group)
+
             # Connect NSG with interfaces
             if 'networkInterfaces' in nsg['properties']:
                 for ni in nsg['properties']['networkInterfaces']:
@@ -647,6 +714,10 @@ resources
             virtual_machine.network_interfaces.connect(
                     NetworkInterface.nodes.get(uid=net_interface_id))
 
+            # Map subscription
+            Owner.nodes.get(
+                uid=vm['subscriptionId']).elements.connect(virtual_machine)
+
         # Map databases
         databases = data['databases']
         for db in databases:
@@ -674,6 +745,10 @@ resources
                 name=db_resource_group,
                 subscription_id=db['subscriptionId']).elements.connect(
                     database)
+
+            # Map subscription
+            Owner.nodes.get(
+                uid=db['subscriptionId']).elements.connect(database)
 
         # Map to IIS data
         applications = data['applications']
@@ -732,6 +807,9 @@ resources
                 logging.error(
                     "Error while connecting disk with virtual machine")
                 logging.error(e)
+
+            # Map subscription
+            Owner.nodes.get(uid=d['subscriptionId']).elements.connect(disk)
 
         # TODO
         # Network Peerings
