@@ -102,12 +102,20 @@ class BaseGraphMapper():
             handlers=handlers
         )
 
+    def export_data(self, export_path='export_data.csv'):
+        """Export data from Neo4j to CSV."""
+        procedure = """
+CALL apoc.export.csv.all("{save_path}",{{useTypes:true}})
+""".format(save_path=export_path)
+        self.db.cypher_query(procedure)
+
 
 # -------------------- Metamodel/Model definition ----------------------------
 class Owner(StructuredNode):
     """Owner of an element."""
 
     uid = StringProperty(unique_index=True)
+    name = StringProperty()
     regions = Relationship('Region', 'REGION')
     elements = Relationship('Element', 'OWNED_ELEMENT')
     properties = JSONProperty()

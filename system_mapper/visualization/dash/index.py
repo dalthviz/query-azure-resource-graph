@@ -19,6 +19,22 @@ APP.layout = html.Div([
     html.Div(id='page-content')
 ])
 
+VISUALIZATIONS = [
+    FULL_MAP_VISUALIZATION, SUBSCRIPTION_QUERY_VISUALIZATION,
+    RESOURCE_QUERY_VISUALIZATION, VM_QUERY_VISUALIZATION,
+    RULES_QUERY_VISUALIZATION]
+
+VISUALIZATIONS_MAP = {}
+
+for visual in VISUALIZATIONS:
+    VISUALIZATIONS_MAP[visual.name] = visual
+
+
+@APP.server.route('/download/<path:path>')
+def download_csv(path):
+    """Download visualization current info as csv."""
+    return VISUALIZATIONS_MAP[path].download_csv()
+
 
 @APP.callback(Output('page-content', 'children'),
               [Input('url', 'pathname')])

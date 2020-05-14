@@ -5,6 +5,7 @@ Deployed application graph visualization dashboard.
 """
 
 # Standard library imports
+import io
 import os
 import json
 
@@ -20,6 +21,8 @@ import dash_core_components as dcc
 import dash_cytoscape as cyto
 import dash_html_components as html
 import dash_treeview_antd
+import flask
+from pandas import DataFrame
 
 # Neomodel database URL
 from neomodel import config, db
@@ -70,7 +73,7 @@ STYLES = {
     'inputs': {'display': 'none'},
     'text-inputs': {'width': '100%'},
     'search': {'width': '100%'},
-    'reset': {'width': '100%'}
+    'actions': {'width': '100%'}
 }
 
 # Load extra layouts
@@ -593,15 +596,20 @@ class GraphVisualization():
                             value='focus'
                             ),
                         html.Div(
-                            id='reset-box' + self.name,
+                            id='actions-box' + self.name,
                             children=[
                                 html.Button(
                                     children='Reset',
                                     id='reset-submit' + self.name,
                                     type='submit',
                                     n_clicks=0),
+                                html.A(
+                                    children='Export data',
+                                    id='export-submit' + self.name,
+                                    className='button',
+                                    href='/download/' + self.name),
                                 ],
-                            style=STYLES['reset'],
+                            style=STYLES['actions'],
                             ),
                         html.Div(
                             id='node-number' + self.name
@@ -625,6 +633,28 @@ class GraphVisualization():
         ])
 
         return layout
+
+    def _export_data(self):
+        """Export current nodes and relationships to .csv file."""
+        data_file = io.StringIO()
+        df_data = DataFrame.from_dict(self.data)
+        df_data.to_csv(data_file)
+        file_export = io.BytesIO()
+        file_export.write(data_file.getvalue().encode('utf-8'))
+        file_export.seek(0)
+        data_file.close()
+        return file_export
+
+    def download_csv(self):
+        """Trigger download of data in .csv format."""
+        data = self._export_data()
+        return flask.send_file(
+            data,
+            mimetype='text/csv',
+            attachment_filename='downloadData{name}.csv'.format(
+                name=self.name),
+            as_attachment=True,
+            cache_timeout=0)
 
     def run(self, debug=False):
         """Launch visualization."""

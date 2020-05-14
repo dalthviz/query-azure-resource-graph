@@ -815,15 +815,10 @@ resources
         # Network Peerings
             # Using GatewaySubnets
 
-    def export_data(data, filename='export_data.csv'):
-        """Export data using Pandas."""
-        df_data = DataFrame.from_dict(data)
-        logging.info(df_data)
-        df_data.to_csv(filename)
-        return df_data
 
-
-def run_mapper(reset=True):
+def run_mapper(reset=True, export_path=None):
     """Run mapper script to add populate database."""
     az_mapper = AzureGraphMapper()
     az_mapper.map_data(reset=reset)
+    if export_path is not None:
+        az_mapper.export_data(export_path=export_path)
