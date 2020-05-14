@@ -499,12 +499,6 @@ class GraphVisualization():
                 )
             ]),
             html.Div(className='four columns', children=[
-                html.Div(
-                        className='center',
-                        children=[
-                            html.Img(
-                                src='../assets/images/convention.png'
-                                )]),
                 dcc.Tabs(id='tabs' + self.name, children=[
                     dcc.Tab(label='Control Panel', children=[
                         html.Div(
@@ -519,6 +513,7 @@ class GraphVisualization():
                                     children='Search',
                                     id='search-submit' + self.name,
                                     type='submit',
+                                    className='button',
                                     n_clicks=0),
                                 ],
                             style=STYLES['search'],
@@ -602,6 +597,7 @@ class GraphVisualization():
                                     children='Reset',
                                     id='reset-submit' + self.name,
                                     type='submit',
+                                    className='button',
                                     n_clicks=0),
                                 html.A(
                                     children='Export data',
@@ -627,7 +623,18 @@ class GraphVisualization():
                                     expanded=['root'],
                                     data={})
                                 ])
-                    ])
+                    ]),
+                    dcc.Tab(label='Graph conventions', children=[
+                        html.Div(children=[
+                            html.Br(),
+                            html.Div(
+                                className='center',
+                                children=[
+                                    html.Img(
+                                        src='../assets/images/convention.png'
+                                        )])
+                             ])
+                        ])
                 ]),
             ])
         ])
