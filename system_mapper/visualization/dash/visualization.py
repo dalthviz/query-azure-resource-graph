@@ -252,7 +252,9 @@ class GraphVisualization():
                     elements, '{number} nodes'.format(number=len(self.nodes)))
 
             if n_clicks > self.n_clicks and search:
-                elements = self.data = self.nodes = self.edges = []
+                elements = self.data = []
+                self.nodes = []
+                self.edges = []
                 self.n_clicks += 1
                 variables = search.split('RETURN')[-1].strip()
                 variables = [var.strip() for var in variables.split(',')]
