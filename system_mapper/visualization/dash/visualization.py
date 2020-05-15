@@ -66,10 +66,11 @@ DEFAULT_STYLESHEET = CONFIG['style_sheet']
 STYLES = {
     'json-output': {
         'overflowY': 'scroll',
-        'height': 'calc(50% - 25px)',
+        'height': 'calc(90vh - 10px)',
         'border': 'thin lightgrey solid'
     },
-    'tab': {'height': 'calc(98vh - 80px)'},
+    'tab': {'height': '100vh',
+            'border': 'thin lightgrey solid'},
     'inputs': {'display': 'none'},
     'text-inputs': {'width': '100%'},
     'search': {'width': '100%'},
@@ -503,7 +504,7 @@ class GraphVisualization():
                         })
                 )
             ]),
-            html.Div(className='four columns', children=[
+            html.Div(style=STYLES['tab'], className='four columns', children=[
                 dcc.Tabs(id='tabs' + self.name, children=[
                     dcc.Tab(label='Control Panel', children=[
                         html.Div(
@@ -627,7 +628,8 @@ class GraphVisualization():
                                     selected=[],
                                     expanded=['root'],
                                     data={})
-                                ])
+                                ],
+                                    style=STYLES['json-output'])
                     ]),
                     dcc.Tab(label='Graph conventions', children=[
                         html.Div(children=[
