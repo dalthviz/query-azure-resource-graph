@@ -264,6 +264,8 @@ class GraphVisualization():
                         filename=self.filename,
                         custom=True,
                         variables=variables)
+                return (
+                    elements, '{number} nodes'.format(number=len(self.nodes)))
 
             if rule and self.selected_rule != rule:
                 elements = self.data = []
