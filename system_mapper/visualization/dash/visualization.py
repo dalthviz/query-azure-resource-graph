@@ -255,6 +255,7 @@ class GraphVisualization():
                 elements = self.data = []
                 self.nodes = []
                 self.edges = []
+                self.seen_nodes = set()
                 self.n_clicks += 1
                 variables = search.split('RETURN')[-1].strip()
                 variables = [var.strip() for var in variables.split(',')]
