@@ -22,7 +22,8 @@ import dash_cytoscape as cyto
 import dash_html_components as html
 import dash_treeview_antd
 import flask
-from pandas import DataFrame
+from pandas import json_normalize
+
 
 # Neomodel database URL
 from neomodel import config, db
@@ -231,6 +232,14 @@ class GraphVisualization():
             else:
                 return {'display': 'none'}
 
+        @app.callback(Output('search-box' + self.name, 'style'),
+                      [Input('custom-search' + self.name, 'n_clicks')])
+        def display_custom_search(n_clicks):
+            if n_clicks % 2 != 0:
+                return {'display': 'block', 'width': '100%'}
+            else:
+                return {'display': 'none', 'width': '100%'}
+
         @app.callback(Output('search' + self.name, 'value'),
                       [Input('dropdown-expand' + self.name, 'value'),
                        Input('cytoscape' + self.name, 'tapNodeData')])
@@ -274,11 +283,13 @@ class GraphVisualization():
                 self.nodes = []
                 self.edges = []
                 self.seen_nodes = set()
+                variables = [
+                    var.strip() for var in RULES_MAPPING[rule][1].split(',')]
                 self.query_data(
                         RULES_MAPPING[rule][0],
                         filename=self.filename,
                         custom=True,
-                        variables=RULES_MAPPING[rule][1].split(','))
+                        variables=variables)
                 return (
                     elements, '{number} nodes'.format(number=len(self.nodes)))
 
@@ -409,6 +420,10 @@ class GraphVisualization():
                 'properties' in line_data['properties']):
             line_data['properties']['properties'] = json.loads(
                 line_data['properties']['properties'])
+        if ('properties' in line_data and
+                'tags' in line_data['properties']):
+            line_data['properties']['tags'] = json.loads(
+                line_data['properties']['tags'])
 
         if line_data['type'] == 'node':
             line_data = {'data': line_data}
@@ -508,23 +523,6 @@ class GraphVisualization():
                 dcc.Tabs(id='tabs' + self.name, children=[
                     dcc.Tab(label='Control Panel', children=[
                         html.Div(
-                            id='search-box' + self.name,
-                            children=[
-                                dcc.Input(
-                                    style=STYLES['text-inputs'],
-                                    id='search' + self.name,
-                                    type='text', value='',
-                                    placeholder='Search query'),
-                                html.Button(
-                                    children='Search',
-                                    id='search-submit' + self.name,
-                                    type='submit',
-                                    className='button',
-                                    n_clicks=0),
-                                ],
-                            style=STYLES['search'],
-                            ),
-                        html.Div(
                             id='rules-box' + self.name,
                             children=[
                                 drc.NamedDropdown(
@@ -610,12 +608,35 @@ class GraphVisualization():
                                     id='export-submit' + self.name,
                                     className='button',
                                     href='/download/' + self.name),
+                                html.Button(
+                                    children='Custom search',
+                                    id='custom-search' + self.name,
+                                    type='button',
+                                    className='button',
+                                    n_clicks=0)
                                 ],
                             style=STYLES['actions'],
                             ),
                         html.Div(
-                            id='node-number' + self.name
+                            id='search-box' + self.name,
+                            children=[
+                                dcc.Input(
+                                    style=STYLES['text-inputs'],
+                                    id='search' + self.name,
+                                    type='text', value='',
+                                    placeholder='Search query'),
+                                html.Button(
+                                    children='Search',
+                                    id='search-submit' + self.name,
+                                    type='submit',
+                                    className='button',
+                                    n_clicks=0),
+                                ],
+                            style=STYLES['search'],
                             ),
+                        html.Div(
+                            id='node-number' + self.name
+                            )
                     ]),
                     dcc.Tab(label='Elements Properties', children=[
                         html.Div(
@@ -629,8 +650,8 @@ class GraphVisualization():
                                     expanded=['root'],
                                     data={})
                                 ],
-                                    style=STYLES['json-output'])
-                    ]),
+                            style=STYLES['json-output'])
+                        ]),
                     dcc.Tab(label='Graph conventions', children=[
                         html.Div(children=[
                             html.Br(),
@@ -651,7 +672,7 @@ class GraphVisualization():
     def _export_data(self):
         """Export current nodes and relationships to .csv file."""
         data_file = io.StringIO()
-        df_data = DataFrame.from_dict(self.data)
+        df_data = json_normalize(self.data, sep='.')
         df_data.to_csv(data_file)
         file_export = io.BytesIO()
         file_export.write(data_file.getvalue().encode('utf-8'))

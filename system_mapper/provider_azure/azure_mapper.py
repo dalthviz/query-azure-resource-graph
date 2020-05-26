@@ -266,12 +266,19 @@ resources
                     '| where type == "microsoft.network/loadbalancers"')
                 code, data['load_balancers'] = az_resource_graph(
                     query=lbs_query)
-                # Get databases
+                # Get databases (1)
                 dbs_query = (
                     'resources'
                     ' | where type == "microsoft.sql/servers/databases"')
                 code, data['databases'] = az_resource_graph(
                     query=dbs_query)
+                # Get databases (2)
+                dbs_query = (
+                    'resources'
+                    ' | where type == "microsoft.sql/servers"')
+                code, databases_servers = az_resource_graph(
+                    query=dbs_query)
+                data['databases'] += databases_servers
 
             # data = data.replace('null', 'None')
             logging.info('Data:')
