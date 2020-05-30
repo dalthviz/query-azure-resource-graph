@@ -553,7 +553,7 @@ class GraphVisualization():
                                 'spread',
                                 'euler'
                             ),
-                            value='random',
+                            value='grid',
                             clearable=False
                         ),
                         drc.NamedDropdown(
@@ -652,14 +652,14 @@ class GraphVisualization():
                                 ],
                             style=STYLES['json-output'])
                         ]),
-                    dcc.Tab(label='Graph conventions', children=[
+                    dcc.Tab(label='Graph Conventions', children=[
                         html.Div(children=[
                             html.Br(),
                             html.Div(
                                 className='center',
                                 children=[
                                     html.Img(
-                                        src='../assets/images/convention.png'
+                                        src='../assets/images/convention.svg'
                                         )])
                              ])
                         ])
