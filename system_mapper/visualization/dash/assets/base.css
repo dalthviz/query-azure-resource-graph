@@ -1,5 +1,6 @@
 /* Table of contents
 ––––––––––––––––––––––––––––––––––––––––––––––––––
+- Img
 - Grid
 - Base Styles
 - Typography
@@ -15,7 +16,12 @@
 - Media Queries
 */
 
-
+/* Responsive
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+.responsive{
+  width: 100%;
+  height: auto;
+}
 /* Grid
 –––––––––––––––––––––––––––––––––––––––––––––––––– */
 .container {

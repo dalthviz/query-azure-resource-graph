@@ -659,6 +659,7 @@ class GraphVisualization():
                                 className='center',
                                 children=[
                                     html.Img(
+                                        className='responsive',
                                         src='../assets/images/convention.svg'
                                         )])
                              ])
