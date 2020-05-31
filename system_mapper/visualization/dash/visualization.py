@@ -209,10 +209,14 @@ class GraphVisualization():
         def display_hover_element(node_data):
             data = ''
             if node_data:
-                data = node_data
+                data = node_data['properties']
                 self.element_data = data
             parse_data = 'Hover a node to see its properties here'
             if data:
+                try:
+                    data['tags'] = json.loads(data['tags'])
+                except Exception:
+                    pass
                 parse_data = self._treeify(data)
             return parse_data
 
@@ -545,13 +549,7 @@ class GraphVisualization():
                                 'circle',
                                 'concentric',
                                 'breadthfirst',
-                                'cose',
-                                'cose-bilkent',
-                                'dagre',
-                                'cola',
-                                'klay',
-                                'spread',
-                                'euler'
+                                'cose'
                             ),
                             value='grid',
                             clearable=False
