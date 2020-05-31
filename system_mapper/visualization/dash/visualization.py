@@ -205,16 +205,13 @@ class GraphVisualization():
 
         @app.callback(
             Output('hover-element-json-output' + self.name, 'data'),
-            [Input('cytoscape' + self.name, 'mouseoverNodeData'),
-             Input('cytoscape' + self.name, 'mouseoverEdgeData')])
-        def display_hover_element(node_data, edge_data):
-            data = self.element_data
-            if node_data and node_data != self.element_data:
+            [Input('cytoscape' + self.name, 'mouseoverNodeData')])
+        def display_hover_element(node_data):
+            data = ''
+            if node_data:
                 data = node_data
-            elif edge_data and edge_data != self.element_data:
-                data = edge_data
-            self.element_data = data
-            parse_data = 'Hover a node or edge to see its properties here'
+                self.element_data = data
+            parse_data = 'Hover a node to see its properties here'
             if data:
                 parse_data = self._treeify(data)
             return parse_data
@@ -302,7 +299,10 @@ class GraphVisualization():
                 # it again
                 # if nodeData.get('expanded'):
                 #     return elements
-
+                if 'Property' in nodeData.get('labels'):
+                    return (
+                        elements,
+                        '{number} nodes'.format(number=len(self.nodes)))
                 # This retrieves the currently selected element,
                 # and tag it as expanded
                 selected_element = None
