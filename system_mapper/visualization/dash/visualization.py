@@ -286,6 +286,8 @@ class GraphVisualization():
                 self.seen_nodes = set()
                 variables = [
                     var.strip() for var in RULES_MAPPING[rule][1].split(',')]
+                self.initial_query = RULES_MAPPING[rule][0]
+                self.initial_variables = variables
                 self.query_data(
                         RULES_MAPPING[rule][0],
                         filename=self.filename,
