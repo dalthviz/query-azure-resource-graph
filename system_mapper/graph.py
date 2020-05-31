@@ -4,6 +4,7 @@
 Cloud application domain mapping.
 """
 # Standard library imports
+import json
 import sys
 import logging
 
@@ -46,6 +47,12 @@ class BaseGraphMapper():
 
     def add_tags(self, element_tags, tags):
         """Add mulitple tags to an element."""
+        if not isinstance(tags, dict):
+            try:
+                tags = json.loads(tags)
+            except Exception:
+                logging.error("Error parsing Tags")
+                return
         if isinstance(tags, dict):
             for key, value in tags.items():
                 self.add_tag(element_tags, key, value)
