@@ -624,7 +624,7 @@ class GraphVisualization():
                                     style=STYLES['text-inputs'],
                                     id='search' + self.name,
                                     type='text', value='',
-                                    placeholder='Search query'),
+                                    placeholder='MATCH (n)-[r]-(n2:Property) RETURN n,r'),
                                 html.Button(
                                     children='Search',
                                     id='search-submit' + self.name,
